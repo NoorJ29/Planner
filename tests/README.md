@@ -6,7 +6,7 @@ Browser tests using Playwright. Run them from the project root (the folder conta
 ```
 pip install playwright
 python -m playwright install chromium
-cd tests && mkdir -p libs && cd libs && npm init -y && npm i jspdf@2.5.1 jszip@3.10.1 && cd ../..
+cd tests && mkdir -p libs && cd libs && npm init -y && npm i jspdf@2.5.1 jszip@3.10.1 quill@2.0.3 && cd ../..
 ```
 
 ## Run
@@ -19,6 +19,8 @@ cd tests && mkdir -p libs && cd libs && npm init -y && npm i jspdf@2.5.1 jszip@3
    ```
    python3 tests/test_core_features.py
    ```
+`libroutes.py` serves the editor, PDF and Word libraries from `tests/libs` so tests never download them.
+
 Each test prints what it checked and ends with `ERRORS: []` when nothing went wrong. Screenshots go to `tests/out/`.
 
 ## What each test covers
@@ -32,6 +34,7 @@ Each test prints what it checked and ends with `ERRORS: []` when nothing went wr
 - `test_speed.py`: screen switch times with thousands of items
 - `test_folders.py`: note folders and subfolders: create, open, breadcrumbs, include subfolders, move notes and folders, delete (keep or everything) with Undo, laptop tree, search, backup, sync
 - `test_menu_layout.py`: choosing and ordering pages in the phone bottom bar and laptop sidebar, number keys, syncing the layout to another device
+- `test_rich_notes.py`: note/journal formatting: toolbar, typing shortcuts, checkboxes, tables, links, colours in light and dark, paste and tampered-data safety, Word/PDF export, syncing, read-only offline view, size limit
 - `test_profile.py`: profile button and page: stats, rename (also on shared lists), change password, sign out, delete account
 - `test_update_bar.py`: the "new version is ready" bar and Settings → Check for updates (serves its own copy of the app on port 8766)
 

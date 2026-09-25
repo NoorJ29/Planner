@@ -1,5 +1,6 @@
 import json,datetime,re
 from playwright.sync_api import sync_playwright
+from libroutes import serve_libs
 LIB={"jspdf":open("tests/libs/node_modules/jspdf/dist/jspdf.umd.min.js").read(),"jszip":open("tests/libs/node_modules/jszip/dist/jszip.min.js").read()}
 errs=[]
 def newpage(b,url="http://localhost:8765/",scheme="light"):
@@ -7,7 +8,7 @@ def newpage(b,url="http://localhost:8765/",scheme="light"):
     pg=ctx.new_page()
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.on("console",lambda m:m.type=="error" and "gstatic" not in m.text and "fonts" not in m.text and "Failed to load resource" not in m.text and errs.append("console:"+m.text))
-    pg.route("**/cdnjs.cloudflare.com/**",lambda r:r.fulfill(body=LIB["jspdf" if "jspdf" in r.request.url else "jszip"],content_type="application/javascript"))
+    serve_libs(pg)
     pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript"))
     pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
     pg.goto(url); pg.wait_for_timeout(700)

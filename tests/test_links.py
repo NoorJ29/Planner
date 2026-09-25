@@ -1,9 +1,11 @@
 from playwright.sync_api import sync_playwright
+from libroutes import serve_libs
 errs=[]
 with sync_playwright() as p:
     b=p.chromium.launch(); ctx=b.new_context(viewport={"width":390,"height":844},device_scale_factor=2,service_workers="block")
     ctx.route("**/www.google.com/**",lambda r:r.abort()); ctx.route("**/www.gstatic.com/**",lambda r:r.abort()); ctx.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript")); ctx.route("**/fonts.googleapis.com/**",lambda r:r.abort())
     ctx.route("https://*/**",lambda r:r.fulfill(body="<title>site</title>ok",content_type="text/html") if "localhost" not in r.request.url else r.continue_())
+    serve_libs(ctx)  # later routes win, so the editor and export libraries still load
     pg=ctx.new_page(); pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("http://localhost:8765/"); pg.wait_for_timeout(500)
     print("nav:",pg.locator("#nav button span").all_inner_texts())

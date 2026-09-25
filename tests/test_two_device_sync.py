@@ -1,9 +1,10 @@
 from playwright.sync_api import sync_playwright
+from libroutes import serve_libs
 MOCK=open("tests/mockfb2.js").read()
 CFG='window.PLANNER_FIREBASE_CONFIG={apiKey:"test",authDomain:"x",projectId:"x",appId:"x"};'
 errs=[]
 def dev(ctx,name,w=390,h=844):
-    pg=ctx.new_page(); pg.set_viewport_size({"width":w,"height":h})
+    pg=ctx.new_page(); pg.set_viewport_size({"width":w,"height":h}); serve_libs(pg)
     pg.on("pageerror",lambda e:errs.append(name+": "+str(e)))
     pg.route("**/www.gstatic.com/**",lambda r:r.fulfill(body=MOCK if "app-compat" in r.request.url else "",content_type="application/javascript"))
     pg.route("**/config.js",lambda r:r.fulfill(body=CFG,content_type="application/javascript"))

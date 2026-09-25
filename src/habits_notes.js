@@ -99,8 +99,8 @@ function renderNotes(main){
     }
   }
 }
-function noteDoc(n){return{title:n.title||"Untitled",meta:"Last edited "+new Date(n.updatedAt).toLocaleString(),body:n.body||""};}
-function journalDoc(j){const m=moodOf(j.mood);return{title:longDate(j.date),meta:m?"Mood: "+m[2]:"",body:j.body||""};}
+function noteDoc(n){return{title:n.title||"Untitled",meta:"Last edited "+new Date(n.updatedAt).toLocaleString(),body:n.body||"",doc:n.doc};}
+function journalDoc(j){const m=moodOf(j.mood);return{title:longDate(j.date),meta:m?"Mood: "+m[2]:"",body:j.body||"",doc:j.doc};}
 
 /* ================= note folders ================= */
 // A folder is {id,name,parentId,color}. A note's folderId points at one; "" (or a deleted folder) means top level.
@@ -128,8 +128,8 @@ function renderNoteFolder(main,nn){
   if(!list.length)body.append(h("div",{class:"sec"},h("div",{class:"empty",text:nn.length?(cf?"No notes in "+f.name+" yet.":UI.noteDeep?"No notes yet.":"No notes outside folders. Open a folder above, or switch on “Show notes from all folders”."):"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Planner to save it here."})));
   else{
     const shown=UI.expanded.has("notes")?list:list.slice(0,40);
-    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
-      h("div",{class:"small muted",text:(nf!==cf&&nf?"📁 "+folderLabel(nf)+" · ":"")+"Edited "+ago(n.updatedAt)}));})));
+    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n),cp=checkProgress(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
+      h("div",{class:"small muted",text:(nf!==cf&&nf?"📁 "+folderLabel(nf)+" · ":"")+(cp?"☑ "+cp.d+"/"+cp.t+" · ":"")+"Edited "+ago(n.updatedAt)}));})));
     if(shown.length<list.length)body.append(h("button",{class:"linkbtn",text:"Show all "+list.length,onclick:()=>{UI.expanded.add("notes");render();}}));
   }
   if(!UI.desktop){main.append(body);return;}
@@ -192,19 +192,28 @@ function deleteFolder(f){
     h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}))]);
 }
 
-function editorSheet({titleVal,titlePh,bodyVal,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn}){
+// The note and journal editor: a full-screen sheet with the rich text editor (see editor.js).
+function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn}){
   const status=h("span",{class:"saved",text:""});
   const title=titlePh!=null?h("input",{class:"note-title",value:titleVal||"",placeholder:titlePh,"aria-label":"Title"}):null;
-  const body=h("textarea",{class:"note-body",placeholder:bodyPh,"aria-label":"Text"});body.value=bodyVal||"";
-  const saveNow=debounce(()=>{onChange({title:title?title.value:undefined,body:body.value});status.textContent="Saved";},600);
+  const host=h("div",{class:"rich-host"},h("div",{class:"small muted",style:"padding:14px 2px",text:"Opening the editor…"}));
+  let q=null,closed=false;
+  const snapshot=()=>{if(!q)return{title:title?title.value:undefined};return{title:title?title.value:undefined,body:q.getText().replace(/\n$/,""),doc:{ops:clone(q.getContents().ops)}};};
+  const saveNow=debounce(()=>{const c=snapshot();
+    if(c.doc&&JSON.stringify(c.doc).length+c.body.length>NOTE_MAX){status.textContent="Too big to sync";toast("This note is too big to sync. Split it into two notes.");return;}
+    onChange(c);status.textContent="Saved";},600);
   const changed=()=>{status.textContent="Saving…";saveNow();};
-  if(title)title.addEventListener("input",changed);body.addEventListener("input",changed);
+  if(title)title.addEventListener("input",changed);
   const done=h("button",{class:"btn primary",style:"padding:8px 16px",text:"Done"});
   let deleted=false;
   const tools=h("div",{class:"row"},exportFn?h("button",{class:"chip",text:"Export",onclick:()=>{saveNow.flush();exportFn();}}):null,deleteFn?h("button",{class:"chip",text:"Delete",onclick:()=>{saveNow.flush();saveNow.cancel();deleted=true;close();deleteFn();}}):null);
-  const close=openSheet([h("div",{class:"shead"},h("div",{style:"min-width:0"},head,status),done),extra||null,title,body,h("div",{style:"padding-top:10px"},tools)],{full:true,onClose:()=>{if(deleted)return;saveNow.flush();onClose&&onClose();}});
+  const close=openSheet([h("div",{class:"shead"},h("div",{style:"min-width:0"},head,status),done),extra||null,title,host,h("div",{style:"padding-top:10px"},tools)],
+    {full:true,onClose:()=>{closed=true;if(deleted)return;saveNow.flush();onClose&&onClose();}});
   done.onclick=close;
-  return {title,body,close,changed};
+  const start=noteDelta(note);
+  const ready=loadEditor().then(Q=>{if(!closed)q=mountEditor(Q,host,start,bodyPh,changed);}).catch(e=>{console.error(e);if(closed)return;host.textContent="";
+    host.append(h("div",{class:"rbanner",role:"status",text:"Formatting tools need the internet once. You can read this note now; editing will work when you're back online."}),renderDocReadOnly(start));});
+  return{title,close,changed,ready,snapshot,focus:()=>ready.then(()=>{if(q)q.focus();})};
 }
 function openNote(n){
   let cur=n?clone(n):null,folderId=cur?noteFolderOf(cur):(UI.tab==="notes"?curFolder():"");
@@ -212,29 +221,30 @@ function openNote(n){
   const fchip=h("button",{class:"chip fchip",title:"Move to a folder"});
   const drawF=()=>{fchip.textContent="📁 "+(folderId?folderLabel(folderId):"No folder");};drawF();
   fchip.onclick=()=>pickFolder("Move note to…",folderId,new Set(),id=>{folderId=id;drawF();if(cur){cur.folderId=id;Store.put("notes",cur);}});
-  const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",bodyVal:cur&&cur.body,bodyPh:"Start writing…",
+  const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",note:cur,bodyPh:"Start writing…",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:n?"Note":"New note"}),
     extra:h("div",{class:"row",style:"margin-bottom:6px"},pin,fchip),
-    onChange:({title,body})=>{if(!cur){if(!title.trim()&&!body.trim())return;cur=newNote({folderId});}cur.title=title;cur.body=body;cur.updatedAt=Date.now();Store.put("notes",cur);},
-    onClose:()=>{if(cur&&!cur.title.trim()&&!cur.body.trim())Store.del("notes",cur.id);},
+    onChange:({title,body,doc})=>{if(!cur){if(!title.trim()&&!(body||"").trim())return;cur=newNote({folderId});}cur.title=title;if(doc){cur.body=body;cur.doc=doc;}cur.updatedAt=Date.now();Store.put("notes",cur);},
+    onClose:()=>{if(cur&&!cur.title.trim()&&!(cur.body||"").trim())Store.del("notes",cur.id);},
     exportFn:()=>{if(cur)openExport([noteDoc(cur)],cur.title||"Note",(cur.title||"note"));else toast("Write something first.");},
     deleteFn:()=>{if(cur&&D.notes.has(cur.id)){const prev=snap("notes",cur.id);Store.del("notes",cur.id);undoable("Note deleted",[["notes",prev,cur.id]]);}}});
   pin.onclick=()=>{if(!cur){toast("Write something first.");return;}cur.pinned=!cur.pinned;pin.setAttribute("aria-pressed",String(cur.pinned));Store.put("notes",Object.assign(cur,{updatedAt:Date.now()}));};
-  if(!n)setTimeout(()=>ed.body.focus(),80);
+  if(!n)ed.focus();
 }
 function openJournal(k){
   const id="j-"+k;let cur=D.notes.has(id)?clone(D.notes.get(id)):null;
   const moods=h("div",{class:"moods",role:"group","aria-label":"Mood"});
-  const drawM=()=>{moods.textContent="";MOODS.forEach(([v,e,l])=>moods.append(h("button",{type:"button","aria-pressed":String(!!cur&&String(cur.mood)===v),onclick:()=>{cur=cur||newNote({id,type:"journal",date:k,body:ed.body.value});cur.mood=v;cur.updatedAt=Date.now();Store.put("notes",cur);drawM();}},e,h("small",{text:l}))));};
-  const ed=editorSheet({bodyVal:cur&&cur.body,bodyPh:"What happened today? What went well? What are you grateful for?",
+  const drawM=()=>{moods.textContent="";MOODS.forEach(([v,e,l])=>moods.append(h("button",{type:"button","aria-pressed":String(!!cur&&String(cur.mood)===v),onclick:()=>{
+    if(!cur){const s=ed.snapshot();cur=newNote({id,type:"journal",date:k,body:s.body||"",doc:s.doc||null});}cur.mood=v;cur.updatedAt=Date.now();Store.put("notes",cur);drawM();}},e,h("small",{text:l}))));};
+  const ed=editorSheet({note:cur,bodyPh:"What happened today? What went well? What are you grateful for?",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:k===todayKey()?"Today":fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),
     extra:h("div",{style:"margin:4px 0 10px"},moods),
-    onChange:({body})=>{if(!cur){if(!body.trim())return;cur=newNote({id,type:"journal",date:k});}cur.body=body;cur.updatedAt=Date.now();Store.put("notes",cur);},
-    onClose:()=>{if(cur&&!cur.body.trim()&&!cur.mood)Store.del("notes",id);},
+    onChange:({body,doc})=>{if(!doc)return;if(!cur){if(!body.trim())return;cur=newNote({id,type:"journal",date:k});}cur.body=body;cur.doc=doc;cur.updatedAt=Date.now();Store.put("notes",cur);},
+    onClose:()=>{if(cur&&!(cur.body||"").trim()&&!cur.mood)Store.del("notes",id);},
     exportFn:()=>{if(cur)openExport([journalDoc(cur)],"Journal: "+longDate(k),"journal-"+k);else toast("Write something first.");},
     deleteFn:()=>{if(D.notes.has(id)){const prev=snap("notes",id);Store.del("notes",id);undoable("Entry deleted",[["notes",prev,id]]);}}});
   drawM();
-  if(!cur)setTimeout(()=>ed.body.focus(),80);
+  if(!cur)ed.focus();
 }
 function openJournalExport(){
   const all=vals("notes").filter(n=>n.type==="journal").sort((a,b)=>a.date<b.date?-1:1);
@@ -257,29 +267,110 @@ function openExport(docs,docTitle,fileBase){
   openSheet([h("h3",{text:"Export "+plural(docs.length,"page")}),h("p",{class:"small muted",text:"PDF works best for English text. Choose Word if you've used emoji or other alphabets."}),h("div",{class:"btnrow"},pdf,docx),status]);
 }
 function pdfSafe(s){return String(s).replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,"-").replace(/\u2026/g,"...").replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u00FF]/g,"");}
+const docBlocks=e=>docToBlocks(validateDoc(e.doc)||deltaFromText(e.body));
+const hexRgb=x=>[parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)];
 async function makePdf(docs,docTitle){
   await loadScript(JSPDF);const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:"pt",format:"a4"});const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=56;let y=M;
-  const ensure=hh=>{if(y+hh>H-M){doc.addPage();y=M;}};
-  doc.setTextColor(22,48,43);doc.setFont("helvetica","bold");doc.setFontSize(22);doc.text(pdfSafe(docTitle),M,y+6);y+=34;
+  const pdf=new jsPDF({unit:"pt",format:"a4"});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight(),M=56,INK="16302B",BODY="1E1E1E";let y=M;
+  const ensure=hh=>{if(y+hh>H-M){pdf.addPage();y=M;}};
+  pdf.setTextColor(...hexRgb(INK));pdf.setFont("helvetica","bold");pdf.setFontSize(22);pdf.text(pdfSafe(docTitle),M,y+6);y+=34;
+  const font=(r,sz,bold)=>{const b=r.b||bold;pdf.setFont("helvetica",b&&r.i?"bolditalic":b?"bold":r.i?"italic":"normal");pdf.setFontSize(sz*(SIZE_MUL[r.size]||1));};
+  // Break styled runs into lines that fit maxW. Each line is a list of pieces {r,text,w}.
+  const layout=(runs,sz,bold,maxW)=>{const lines=[[]];let w=0;
+    for(const r of runs)for(const word of pdfSafe(r.text).split(/(\s+)/)){if(!word)continue;font(r,sz,bold);const ww=pdf.getTextWidth(word),blank=!/\S/.test(word);
+      if(blank&&!w)continue;
+      if(w+ww>maxW&&w>0&&!blank){lines.push([]);w=0;}
+      if(ww>maxW){let chunk="";for(const ch of word){if(w+pdf.getTextWidth(chunk+ch)>maxW&&chunk){lines[lines.length-1].push({r,text:chunk,w:pdf.getTextWidth(chunk)});lines.push([]);w=0;chunk=ch;}else chunk+=ch;}
+        if(chunk){const cw=pdf.getTextWidth(chunk);lines[lines.length-1].push({r,text:chunk,w:cw});w+=cw;}continue;}
+      if(!(blank&&w+ww>maxW)){lines[lines.length-1].push({r,text:word,w:ww});w+=ww;}}
+    return lines;};
+  const lineH=(line,sz)=>Math.max(sz,...line.map(p=>sz*(SIZE_MUL[p.r.size]||1)))*1.42;
+  const draw=(line,x,base,sz,bold,maxW,align,color)=>{const tw=line.reduce((a,p)=>a+p.w,0);let cx=x+(align==="center"?(maxW-tw)/2:align==="right"?maxW-tw:0);
+    for(const p of line){const r=p.r;font(r,sz,bold);const fs=pdf.getFontSize(),col=r.link?"1565C0":TXT_HEX[r.color]||color;
+      if(r.bg&&BG_HEX[r.bg]){pdf.setFillColor(...hexRgb(BG_HEX[r.bg]));pdf.rect(cx,base-fs*.82,p.w,fs*1.08,"F");}
+      pdf.setTextColor(...hexRgb(col));pdf.text(p.text,cx,base);pdf.setDrawColor(...hexRgb(col));pdf.setLineWidth(.6);
+      if(r.u||r.link)pdf.line(cx,base+1.6,cx+p.w,base+1.6);
+      if(r.s)pdf.line(cx,base-fs*.3,cx+p.w,base-fs*.3);
+      if(r.link&&safeUrl(r.link))pdf.link(cx,base-fs,p.w,fs*1.25,{url:safeUrl(r.link)});
+      cx+=p.w;}};
+  const para=(runs,x,maxW,sz,bold,align,color,before)=>{if(!runs.length){ensure(sz*1.42);const top=y;y+=sz*1.42;return{top,bottom:y};}
+    const lines=layout(runs,sz,bold,maxW);y+=before||0;let top=null;
+    lines.forEach(l=>{const lh=lineH(l,sz);ensure(lh);if(top===null)top=y;draw(l,x,y+lh*.72,sz,bold,maxW,align,color);y+=lh;});return{top,bottom:y};};
+  const blocks=list=>{const nums=listNumbers(list),X=M,MW=W-2*M,sz=11.5;
+    list.forEach((b,i)=>{
+      if(b.kind==="hr"){y+=6;ensure(12);pdf.setDrawColor(190);pdf.setLineWidth(1);pdf.line(X,y,X+MW,y);y+=12;return;}
+      if(b.kind==="table"){const cols=Math.max(...b.rows.map(r=>r.cells.length)),cw=MW/cols;y+=4;
+        b.rows.forEach(r=>{const cells=r.cells.map(c=>layout(c,sz-1,false,cw-12));const rh=Math.max(...cells.map(ls=>ls.reduce((a,l)=>a+lineH(l,sz-1),0)||(sz-1)*1.42))+10;ensure(rh);
+          pdf.setDrawColor(170);pdf.setLineWidth(.6);for(let c=0;c<cols;c++)pdf.rect(X+c*cw,y,cw,rh);
+          cells.forEach((ls,c)=>{let yy=y+5;ls.forEach(l=>{const lh=lineH(l,sz-1);draw(l,X+c*cw+6,yy+lh*.72,sz-1,false,cw-12,"",BODY);yy+=lh;});});y+=rh;});y+=6;return;}
+      if(/^h\d$/.test(b.kind)){const s={h1:20,h2:16,h3:13.5}[b.kind];para(b.runs,X,MW,s,true,b.align,INK,8);y+=2;return;}
+      const ind=b.indent*18,li=b.kind==="li",q=b.kind==="quote",x=X+ind+(li?18:0)+(q?14:0),mw=MW-ind-(li?18:0)-(q?14:0);
+      const box=para(b.runs,x,mw,sz,false,b.align,b.list==="checked"?"8A8A8A":q?"4A4A4A":BODY,0);
+      if(li){const my=box.top+sz*1.42*.72;pdf.setTextColor(...hexRgb(BODY));pdf.setFont("helvetica","normal");pdf.setFontSize(sz);
+        if(b.list==="bullet")pdf.text("•",x-12,my);
+        else if(b.list==="ordered")pdf.text(nums[i]+".",x-4-pdf.getTextWidth(nums[i]+"."),my);
+        else{pdf.setDrawColor(90);pdf.setLineWidth(.8);pdf.rect(x-15,my-8.5,9,9);if(b.list==="checked"){pdf.setLineWidth(1.3);pdf.line(x-13,my-4,x-11,my-1.5);pdf.line(x-11,my-1.5,x-7.5,my-7);}}}
+      if(q){pdf.setFillColor(200);pdf.rect(X+ind,box.top,3,Math.max(box.bottom-box.top,sz),"F");}});};
   docs.forEach((e,i)=>{
-    if(i>0){y+=10;ensure(30);doc.setDrawColor(210);doc.line(M,y,W-M,y);y+=24;}
-    doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(22,48,43);
-    doc.splitTextToSize(pdfSafe(e.title),W-2*M).forEach(l=>{ensure(20);doc.text(l,M,y);y+=20;});
-    if(e.meta){doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(110);ensure(16);doc.text(pdfSafe(e.meta),M,y);y+=20;}
-    doc.setFont("helvetica","normal");doc.setFontSize(11.5);doc.setTextColor(30);
-    (e.body||"").split("\n").forEach(par=>{const lines=par.trim()?doc.splitTextToSize(pdfSafe(par),W-2*M):[""];lines.forEach(l=>{ensure(16);doc.text(l,M,y);y+=16;});});
+    if(i>0){y+=10;ensure(30);pdf.setDrawColor(210);pdf.line(M,y,W-M,y);y+=24;}
+    pdf.setFont("helvetica","bold");pdf.setFontSize(15);pdf.setTextColor(...hexRgb(INK));
+    pdf.splitTextToSize(pdfSafe(e.title),W-2*M).forEach(l=>{ensure(20);pdf.text(l,M,y);y+=20;});
+    if(e.meta){pdf.setFont("helvetica","normal");pdf.setFontSize(10);pdf.setTextColor(110);ensure(16);pdf.text(pdfSafe(e.meta),M,y);y+=20;}
+    blocks(docBlocks(e));
   });
-  return doc.output("blob");
+  return pdf.output("blob");
 }
 async function makeDocx(docs,docTitle){
   await loadScript(JSZIP);const zip=new window.JSZip();
-  const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"");
-  const p=(text,o)=>{o=o||{};return `<w:p><w:pPr><w:spacing w:after="${o.after==null?120:o.after}"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>${o.b?"<w:b/>":""}${o.color?`<w:color w:val="${o.color}"/>`:""}<w:sz w:val="${o.sz||23}"/></w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;};
-  let body=p(docTitle,{b:1,sz:40,after:240,color:"16302B"});
-  docs.forEach(e=>{body+=p(e.title,{b:1,sz:30,after:60,color:"16302B"});if(e.meta)body+=p(e.meta,{sz:20,color:"6B6B6B",after:160});(e.body||"").split("\n").forEach(par=>body+=p(par,{after:80}));body+=p("",{after:240});});
-  zip.file("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
-  zip.file("_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
-  zip.file("word/document.xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+body+'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>');
+  const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"");
+  const links=[],nums=[];
+  const plain=(text,o)=>{o=o||{};return `<w:p><w:pPr><w:spacing w:after="${o.after==null?120:o.after}"/></w:pPr><w:r><w:rPr>${o.b?"<w:b/>":""}${o.color?`<w:color w:val="${o.color}"/>`:""}<w:sz w:val="${o.sz||23}"/></w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;};
+  // One text run; in headings the style sets the size, so keepSize skips w:sz.
+  const run=(r,keepSize)=>{
+    const rpr=(r.link?'<w:rStyle w:val="Hyperlink"/>':"")+(r.b?"<w:b/>":"")+(r.i?"<w:i/>":"")+(r.s?"<w:strike/>":"")+(r.u||r.link?'<w:u w:val="single"/>':"")+
+      (r.link?'<w:color w:val="1565C0"/>':TXT_HEX[r.color]?`<w:color w:val="${TXT_HEX[r.color]}"/>`:"")+(!keepSize&&r.size?`<w:sz w:val="${Math.round(23*SIZE_MUL[r.size])}"/>`:"")+
+      (BG_HEX[r.bg]?`<w:shd w:val="clear" w:color="auto" w:fill="${BG_HEX[r.bg]}"/>`:"");
+    const x=`<w:r><w:rPr>${rpr}</w:rPr><w:t xml:space="preserve">${esc(r.text)}</w:t></w:r>`;
+    const u=r.link&&safeUrl(r.link);if(!u)return x;links.push(u);return `<w:hyperlink r:id="rIdL${links.length}">${x}</w:hyperlink>`;};
+  const runs=(rs,keepSize)=>rs.map(r=>run(r,keepSize)).join("");
+  const jc=a=>a?`<w:jc w:val="${a==="justify"?"both":a}"/>`:"";
+  const blocks=list=>{let out="",olNum=0;
+    list.forEach(b=>{
+      if(b.kind!=="li")olNum=0;
+      if(b.kind==="hr"){out+='<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="BFBFBF"/></w:pBdr></w:pPr></w:p>';return;}
+      if(b.kind==="table"){const cols=Math.max(...b.rows.map(r=>r.cells.length)),cw=Math.floor(9638/cols);
+        out+='<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>'+["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="single" w:sz="4" w:color="A6A6A6"/>`).join("")+'</w:tblBorders></w:tblPr><w:tblGrid>'+`<w:gridCol w:w="${cw}"/>`.repeat(cols)+'</w:tblGrid>'+
+          b.rows.map(r=>"<w:tr>"+Array.from({length:cols},(_,c)=>`<w:tc><w:tcPr><w:tcW w:w="${cw}" w:type="dxa"/></w:tcPr><w:p>${runs(r.cells[c]||[])}</w:p></w:tc>`).join("")+"</w:tr>").join("")+'</w:tbl><w:p/>';return;}
+      if(/^h\d$/.test(b.kind)){out+=`<w:p><w:pPr><w:pStyle w:val="Heading${b.kind[1]}"/>${jc(b.align)}</w:pPr>${runs(b.runs,true)}</w:p>`;return;}
+      if(b.kind==="quote"){out+=`<w:p><w:pPr><w:pStyle w:val="Quote"/>${jc(b.align)}</w:pPr>${runs(b.runs)}</w:p>`;return;}
+      if(b.kind==="li"){
+        if(b.list==="checked"||b.list==="unchecked"){out+=`<w:p><w:pPr><w:ind w:left="${(b.indent+1)*360}"/>${jc(b.align)}</w:pPr><w:r><w:t xml:space="preserve">${b.list==="checked"?"☑":"☐"} </w:t></w:r>${runs(b.runs)}</w:p>`;return;}
+        let id=1;if(b.list==="ordered"){if(!olNum){nums.push(nums.length+2);olNum=nums[nums.length-1];}id=olNum;}
+        out+=`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${Math.min(b.indent,8)}"/><w:numId w:val="${id}"/></w:numPr>${jc(b.align)}</w:pPr>${runs(b.runs)}</w:p>`;return;}
+      out+=`<w:p><w:pPr>${b.indent?`<w:ind w:left="${b.indent*720}"/>`:""}${jc(b.align)}</w:pPr>${runs(b.runs)}</w:p>`;});
+    return out;};
+  let body=plain(docTitle,{b:1,sz:40,after:240,color:"16302B"});
+  docs.forEach(e=>{body+=plain(e.title,{b:1,sz:30,after:60,color:"16302B"});if(e.meta)body+=plain(e.meta,{sz:20,color:"6B6B6B",after:160});body+=blocks(docBlocks(e))+plain("",{after:240});});
+  const W='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const lvl=(i,fmt,text)=>`<w:lvl w:ilvl="${i}"><w:start w:val="1"/><w:numFmt w:val="${fmt}"/><w:lvlText w:val="${text}"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="${720+i*360}" w:hanging="360"/></w:pPr></w:lvl>`;
+  const numbering=`${XML}<w:numbering ${W}><w:abstractNum w:abstractNumId="0">${Array.from({length:9},(_,i)=>lvl(i,"bullet",["•","◦","▪"][i%3])).join("")}</w:abstractNum>`+
+    `<w:abstractNum w:abstractNumId="1">${Array.from({length:9},(_,i)=>lvl(i,["decimal","lowerLetter","lowerRoman"][i%3],`%${i+1}.`)).join("")}</w:abstractNum>`+
+    `<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>`+nums.map(n=>`<w:num w:numId="${n}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).join("")+`</w:numbering>`;
+  const st=(id,name,ppr,rpr)=>`<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr>${ppr}</w:pPr><w:rPr>${rpr}</w:rPr></w:style>`;
+  const styles=`${XML}<w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="23"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="100"/></w:pPr></w:pPrDefault></w:docDefaults>`+
+    `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>`+
+    st("Heading1","heading 1",'<w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="0"/>','<w:b/><w:color w:val="16302B"/><w:sz w:val="40"/>')+
+    st("Heading2","heading 2",'<w:keepNext/><w:spacing w:before="200" w:after="60"/><w:outlineLvl w:val="1"/>','<w:b/><w:color w:val="16302B"/><w:sz w:val="32"/>')+
+    st("Heading3","heading 3",'<w:keepNext/><w:spacing w:before="160" w:after="40"/><w:outlineLvl w:val="2"/>','<w:b/><w:color w:val="16302B"/><w:sz w:val="27"/>')+
+    st("Quote","Quote",'<w:ind w:left="360"/><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="C8C8C8"/></w:pBdr>','<w:i/><w:color w:val="4A4A4A"/>')+
+    st("ListParagraph","List Paragraph",'<w:spacing w:after="40"/><w:contextualSpacing/>',"")+
+    `<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="1565C0"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`;
+  const REL="http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  zip.file("[Content_Types].xml",`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`);
+  zip.file("_rels/.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="word/document.xml"/></Relationships>`);
+  zip.file("word/_rels/document.xml.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdS" Type="${REL}/styles" Target="styles.xml"/><Relationship Id="rIdN" Type="${REL}/numbering" Target="numbering.xml"/>`+
+    links.map((u,i)=>`<Relationship Id="rIdL${i+1}" Type="${REL}/hyperlink" Target="${esc(u)}" TargetMode="External"/>`).join("")+`</Relationships>`);
+  zip.file("word/styles.xml",styles);zip.file("word/numbering.xml",numbering);
+  zip.file("word/document.xml",`${XML}<w:document ${W} xmlns:r="${REL}"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
   return zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
 }

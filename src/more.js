@@ -273,6 +273,19 @@ function renderGuide(main){
     tipRow("👆","Swipe the calendar","In Month view, swipe left or right to change month."),
     tipRow("↩️","Undo","Deleted or ticked something by mistake? Tap Undo on the message at the bottom.")]);
   if(UI.desktop)main.append(kb,phone);else main.append(phone,kb);
+  main.append(card("Formatting notes","Notes and journal",[
+    tipRow("🖋️","Toolbar","Select text, then use the toolbar above your note: headings, bold, colours, lists, checkboxes, indent, alignment, links, dividers and tables."),
+    keyRow([["#"],["##"],["###"]],"Type at the start of a line, then a space, for a heading"),
+    keyRow([["-"],["1."],["[]"]],"Type at the start of a line, then a space, for a bullet, numbered list or checkbox"),
+    keyRow([[">"]],"Then a space, for a quote"),
+    keyRow([["---"],["Enter"]],"A divider line"),
+    keyRow([["**bold**"],["*italic*"],["~~strike~~"]],"Type the marks around text"),
+    keyRow([[CTRL,"B"],[CTRL,"I"],[CTRL,"U"]],"Bold, italic, underline"),
+    keyRow([[CTRL,"K"]],"Add a link (select text first)"),
+    keyRow([[CTRL,"Shift","7"],[CTRL,"Shift","8"],[CTRL,"Shift","9"]],"Numbered list, bullet list, checklist"),
+    keyRow([[CTRL,"Alt","1"],[CTRL,"Alt","2"],[CTRL,"Alt","3"]],"Heading 1, 2, 3 (Alt+0 for normal text)"),
+    keyRow([["Tab"],["Shift","Tab"]],"Indent or outdent a list item"),
+    keyRow([[CTRL,"Z"],[CTRL,"Y"]],"Undo, redo")]));
   main.append(card("Planning","",[
     tipRow("✨","Smart quick add","Type naturally: “Dentist tomorrow 3pm #personal !!” sets the date, time, list and priority. Also try “every monday”, “in 3 days”, “for 1h”, “remind 15m” and “25 dec”. The chips above the bar show what was understood."),
     tipRow("📅","Google Calendar","Connect it in Settings to see your events in Plan and Home, and send tasks to your calendar for real phone alarms."),

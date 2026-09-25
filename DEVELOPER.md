@@ -9,7 +9,8 @@ A single-page installable web app (PWA) hosted on GitHub Pages, with optional sy
   - `style.css`: all styles (theme tokens at the top, laptop layout under `min-width:1000px`)
   - `core.js`: helpers, state (`D`, `SET`, `UI`), sheets, sync `Store`, notifications
   - `plan.js`: tasks, editor, week/month calendar, day/schedule/upcoming/lists
-  - `habits_notes.js`: habits, notes, journal, PDF/Word export
+  - `habits_notes.js`: habits, notes (with folders), journal, PDF/Word export
+  - `editor.js`: rich text editor for notes and journal (Quill 2 from jsDelivr, loaded on demand; notes store a Delta in `doc` plus plain text in `body`)
   - `more.js`: money, goals, shopping, weekly review, backup, settings, guide, More menu, search
   - `links.js`, `smart.js` (quick-add parser), `focus.js`, `extras.js` (subscriptions, countdowns, templates), `insights.js`, `lock.js`, `shared.js` (family lists), `gcal.js` (Google Calendar), `home.js` (dashboard, bottom-bar choice)
   - `main.js`: render loop, navigation, keyboard shortcuts, startup

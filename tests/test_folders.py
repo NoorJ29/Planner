@@ -1,5 +1,6 @@
 import json
 from playwright.sync_api import sync_playwright
+from libroutes import serve_libs
 MOCK=open("tests/mockfb2.js").read()
 CFG='window.PLANNER_FIREBASE_CONFIG={apiKey:"test",authDomain:"x",projectId:"x",appId:"x"};'
 errs=[]
@@ -7,7 +8,7 @@ def check(label,ok,got=""):
     print(label,"->","OK" if ok else "FAIL",got)
     if not ok: errs.append(label+" "+str(got))
 def device(ctx,w,h):
-    pg=ctx.new_page(); pg.set_viewport_size({"width":w,"height":h}); pg.on("pageerror",lambda e:errs.append(str(e)))
+    pg=ctx.new_page(); pg.set_viewport_size({"width":w,"height":h}); pg.on("pageerror",lambda e:errs.append(str(e))); serve_libs(pg)
     pg.route("**/www.gstatic.com/**",lambda r:r.fulfill(body=MOCK if "app-compat" in r.request.url else "",content_type="application/javascript"))
     pg.route("**/config.js",lambda r:r.fulfill(body=CFG,content_type="application/javascript"))
     pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())

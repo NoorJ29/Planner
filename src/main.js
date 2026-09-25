@@ -122,6 +122,7 @@ applyTheme();
 if(lockCfg())lockNow();
 render();
 Store.init();
+{const pre=()=>{if(navigator.onLine)loadEditor().catch(()=>{});};"requestIdleCallback" in window?requestIdleCallback(pre,{timeout:4000}):setTimeout(pre,4000);} // so notes can be edited offline later
 try{if(sessionStorage.getItem("planner.deleted")){sessionStorage.removeItem("planner.deleted");setTimeout(()=>toast("Your account and its data have been deleted."),300);}}catch(e){}
 refreshFocusUI();{const st=focusState();if(st&&!st.paused&&!st.done&&focusRemaining(st)<=0)finishFocus();else scheduleFocusEnd();}
 $("#focusPill").addEventListener("click",()=>openFocus());
