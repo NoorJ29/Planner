@@ -233,7 +233,7 @@ function renderSettings(main){
     row("Focus length","",sel("planner.focusMin",[15,20,25,30,45,50,60,90],fp.focus)),row("Break length","",sel("planner.breakMin",[3,5,10,15,20],fp.brk)))));
   const theme=lsGet("planner.theme","auto");
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"General"})),h("div",{class:"card",style:"padding:2px 16px"},
-    row("Account",Store.user?Store.user.email:(fbAuth?"Not signed in":"Sync not set up"),h("button",{class:"chip",text:Store.user?"Manage":"Sign in",onclick:openAccount})),
+    row("Account",Store.user?Store.user.email:(fbAuth?"Not signed in":"Sync not set up"),h("button",{class:"chip",text:Store.user?"Open profile":"Sign in",onclick:openAccount})),
     row("Currency",currencyLabel(),currencyButton()),
     row("Task lists",plural(SET.lists.length,"list"),h("button",{class:"chip",text:"Edit",onclick:openLists})),
     row("Home screen widgets","Choose what the Home tab shows",h("button",{class:"chip",text:"Customise",onclick:openDashEditor})),
@@ -295,16 +295,101 @@ function renderGuide(main){
     tipRow("💾","Backup","Download a backup file every few weeks from More, then Backup. The weekly review reminds you.")]));
 }
 
+/* ================= profile ================= */
+function openProfile(){UI.tab="more";UI.page="profile";UI.sharedList=null;render();window.scrollTo(0,0);}
+function reauth(pw){return Store.user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(Store.user.email,pw));}
+function acctMsg(e){const c=(e&&e.code)||"";
+  if(c.includes("wrong-password")||c.includes("invalid-credential")||c.includes("invalid-login"))return"Your current password isn't right.";
+  if(c.includes("weak-password")||c.includes("password-does-not-meet-requirements"))return"That password is too weak. Use at least 8 characters.";
+  if(c.includes("requires-recent-login"))return"For safety, sign out, sign in again, then try once more.";
+  if(c.includes("too-many-requests"))return"Too many attempts. Wait a minute and try again.";
+  if(c.includes("network")||!navigator.onLine)return"No internet connection. Connect and try again.";
+  return"Something went wrong. Try again.";}
+function renderProfile(main){
+  const u=Store.user;
+  if(!u){main.append(h("div",{class:"card sec"},h("b",{text:"You're not signed in"}),h("p",{class:"small muted",text:fbAuth?"Sign in to sync your planner between your phone and laptop.":"Sync isn't set up, so everything is saved on this device only."}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
+  const me=meInfo(),st=syncState(),row=(title,sub,ctrl)=>h("div",{class:"setrow"},h("div",null,h("b",{text:title}),sub?h("span",{text:sub}):null),ctrl);
+  main.append(h("div",{class:"card sec prof"},h("span",{class:"pav big",style:"--c:"+colorFor(u.uid),text:me.name.charAt(0).toUpperCase()}),
+    h("div",{class:"pinfo"},h("b",{class:"pname",text:me.name}),h("span",{class:"small muted",text:u.email||""}),h("span",{class:"pstat "+st.mode},h("i"),st.long))));
+  // stats
+  const created=u.metadata&&u.metadata.creationTime?new Date(u.metadata.creationTime):null,notes=vals("notes");
+  const focusMin=vals("focus").reduce((s,f)=>s+(Number(f.minutes)||0),0),best=vals("habits").reduce((m,x)=>Math.max(m,bestStreak(x)),0);
+  const stat=(n,l)=>h("div",{class:"stat"},h("b",{text:String(n)}),h("span",{text:l}));
+  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Your stats"}),created?h("span",{class:"n",text:"Member since "+created.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}):null),
+    h("div",{class:"card stats pstats"},stat(vals("tasks").filter(t=>t.done).length,"Tasks done"),stat(vals("habits").filter(x=>!x.archived).length,"Habits"),stat(best,"Best streak"),
+      stat(notes.filter(n=>n.type!=="journal").length,"Notes"),stat(notes.filter(n=>n.type==="journal").length,"Journal entries"),stat(focusMin?hmins(focusMin):"0m","Focus time"))));
+  // name
+  const nm=h("input",{class:"inp",value:u.displayName||"",placeholder:me.name,maxlength:"40",autocomplete:"name","aria-label":"Your name"});
+  const saveN=h("button",{class:"btn primary",text:"Save"});
+  saveN.onclick=async()=>{const n=nm.value.trim().replace(/\s+/g," ");if(!n){nm.focus();toast("Type your name first.");return;}if(n===(u.displayName||"")){toast("That's already your name.");return;}
+    saveN.disabled=true;try{await u.updateProfile({displayName:n});await Promise.all([...Shared.lists.keys()].map(id=>fbDb.collection("shared").doc(id).update({["memberInfo."+u.uid]:meInfo()}).catch(()=>{})));updateSync();render();toast("Name saved");}
+    catch(e){console.error(e);toast("Couldn't save your name. "+acctMsg(e));}saveN.disabled=false;};
+  nm.addEventListener("keydown",e=>{if(e.key==="Enter")saveN.click();});
+  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Your name"})),h("div",{class:"card"},h("div",{class:"row",style:"flex-wrap:nowrap"},nm,saveN),
+    h("p",{class:"small muted",style:"margin:8px 0 0",text:"Shown to family on shared lists, like “added by "+me.name+"”."}))));
+  // password
+  const cur=h("input",{class:"inp",type:"password",autocomplete:"current-password",placeholder:"Current password","aria-label":"Current password"});
+  const nw=h("input",{class:"inp",type:"password",autocomplete:"new-password",placeholder:"New password (at least 8 characters)","aria-label":"New password"});
+  const perr=h("div",{class:"small",role:"alert",style:"color:var(--danger);min-height:18px;margin-top:6px"});
+  const saveP=h("button",{class:"btn primary",text:"Change password"});
+  saveP.onclick=async()=>{perr.textContent="";if(!cur.value){cur.focus();perr.textContent="Enter your current password.";return;}
+    if(nw.value.length<8){nw.focus();perr.textContent="Use at least 8 characters for your new password.";return;}
+    if(nw.value===cur.value){perr.textContent="Choose a password that's different from your current one.";return;}
+    saveP.disabled=true;try{await reauth(cur.value);await u.updatePassword(nw.value);cur.value="";nw.value="";toast("Password changed");}catch(e){console.error(e);perr.textContent=acctMsg(e);}saveP.disabled=false;};
+  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Password"})),h("div",{class:"card"},h("div",{class:"pform"},cur,nw),perr,h("div",{class:"row",style:"justify-content:flex-end"},saveP))));
+  // sign out
+  main.append(h("section",{class:"sec"},h("div",{class:"card",style:"padding:2px 16px"},row("Sign out","Your data stays safe in your account. Sign in again any time.",h("button",{class:"chip",style:"white-space:nowrap",text:"Sign out",onclick:()=>{fbAuth.signOut();toast("Signed out");}})))));
+  // danger zone
+  const owned=[...Shared.lists.values()].filter(l=>l.owner===u.uid).map(l=>l.name);
+  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{style:"color:var(--danger)",text:"Delete account"})),h("div",{class:"card dz"},
+    h("p",{style:"margin:0 0 8px",text:"Permanently deletes your account and everything synced to it: tasks, habits, notes, journal, money, links and more. This can't be undone."}),
+    owned.length?h("p",{class:"small",style:"margin:0 0 8px;color:var(--danger)",text:"Shared lists you own will be deleted for everyone: "+owned.join(", ")+"."}):null,
+    h("p",{class:"small muted",style:"margin:0 0 12px",text:"You'll also be removed from lists other people own. Want a copy first? Download a backup from More, then Backup."}),
+    h("button",{class:"btn dzbtn",text:"Delete my account…",onclick:openDeleteAccount}))));
+}
+function openDeleteAccount(){
+  const pw=h("input",{class:"inp",type:"password",autocomplete:"current-password",placeholder:"Your password","aria-label":"Your password"});
+  const conf=h("input",{class:"inp",autocomplete:"off",autocapitalize:"characters",placeholder:"Type DELETE","aria-label":"Type DELETE to confirm"});
+  const err=h("div",{class:"small",role:"alert",style:"color:var(--danger);min-height:18px;margin-top:8px"});
+  const go=h("button",{class:"btn primary",style:"background:var(--danger)",text:"Delete forever",disabled:true});
+  conf.addEventListener("input",()=>{go.disabled=conf.value.trim().toUpperCase()!=="DELETE";});
+  const close=openSheet([h("h3",{text:"Delete your account?"}),h("p",{class:"muted",style:"margin:0 0 12px",text:"Everything in your account is erased for good. Enter your password and type DELETE to confirm."}),
+    h("div",{class:"field"},h("label",{text:"Password"}),pw),h("div",{class:"field"},h("label",{text:"Type DELETE"}),conf),err,
+    h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)],{cls:"acct"});
+  go.onclick=async()=>{err.textContent="";if(!pw.value){pw.focus();err.textContent="Enter your password.";return;}
+    go.disabled=true;go.textContent="Deleting…";
+    try{await deleteAccount(pw.value);}catch(e){console.error(e);err.textContent=e&&e.stage==="login"?"Your data was deleted, but the login couldn't be removed. Sign in and try again.":acctMsg(e);go.textContent="Delete forever";go.disabled=false;}};
+  setTimeout(()=>pw.focus(),60);
+}
+async function deleteAccount(pw){
+  const u=Store.user,uid=u.uid,FV=firebase.firestore.FieldValue;
+  await reauth(pw); // proves it's you before anything is touched
+  const lists=[...Shared.lists.values()].map(L=>({L,items:itemsOf(L.id)}));
+  const base=fbDb.collection("users").doc(uid);
+  Store.stop();
+  for(const {L,items} of lists){const ref=fbDb.collection("shared").doc(L.id);
+    if(L.owner===uid){for(const it of items)await ref.collection("items").doc(it.id).delete();await ref.delete();}
+    else await ref.update({members:FV.arrayRemove(uid),["memberInfo."+uid]:FV.delete()});}
+  for(const c of COLS){const snap=await base.collection(c).get();const refs=snap.docs.map(d=>d.ref);
+    for(let i=0;i<refs.length;i+=400){const b=fbDb.batch();refs.slice(i,i+400).forEach(r=>b.delete(r));await b.commit();}}
+  await base.delete();
+  try{await u.delete();}catch(e){e.stage="login";throw e;}
+  try{Object.keys(localStorage).filter(k=>k.startsWith("planner.")).forEach(k=>localStorage.removeItem(k));}catch(e){}
+  try{sessionStorage.setItem("planner.deleted","1");}catch(e){}
+  try{await fbDb.terminate();await fbDb.clearPersistence();}catch(e){}
+  location.reload();
+}
+
 /* ================= more tab ================= */
 const PAGES={insights:["📈","Insights","Charts of your progress"],review:["📊","Weekly review","See how the week went"],goals:["🎯","Goals","Track big things"],countdowns:["🎉","Countdowns","Days until what matters"],templates:["📋","Templates","Reusable checklists"],
-  shopping:["🛒","Shopping","Your shopping lists"],shared:["👨‍👩‍👧","Shared lists","Lists with family, live"],guide:["📖","Guide","Shortcuts, gestures and tips"],backup:["💾","Backup","Download or restore"],settings:["⚙️","Settings","Lock, calendar, reminders"]};
-const MENU=[["Tools",["focus","insights","review","goals","countdowns","templates"]],["Lists",["shopping","shared"]],["App",["guide","backup","settings"]]];
+  shopping:["🛒","Shopping","Your shopping lists"],shared:["👨‍👩‍👧","Shared lists","Lists with family, live"],guide:["📖","Guide","Shortcuts, gestures and tips"],backup:["💾","Backup","Download or restore"],settings:["⚙️","Settings","Lock, calendar, reminders"],profile:["👤","Profile","Your account, name and password"]};
+const MENU=[["Tools",["focus","insights","review","goals","countdowns","templates"]],["Lists",["shopping","shared"]],["App",["profile","guide","backup","settings"]]];
 function renderMore(main){
   if(UI.page&&PAGES[UI.page]){
     const [e,t]=PAGES[UI.page];setHeader(t,"");
     if(!(UI.page==="shared"&&UI.sharedList&&Shared.lists.has(UI.sharedList)))main.append(h("div",{style:"margin-top:14px"},h("button",{class:"back",text:"‹ More",onclick:()=>{UI.page=null;render();window.scrollTo(0,0);}})));
     const box=h("div",{class:["goals","review","insights","countdowns","templates","shared"].includes(UI.page)?"":"narrow"});main.append(box);
-    ({insights:renderInsights,countdowns:renderCountdowns,templates:renderTemplates,shared:renderShared,guide:renderGuide,goals:renderGoals,shopping:renderShopping,review:renderReview,backup:renderBackup,settings:renderSettings})[UI.page](box);return;
+    ({insights:renderInsights,countdowns:renderCountdowns,templates:renderTemplates,shared:renderShared,guide:renderGuide,goals:renderGoals,shopping:renderShopping,review:renderReview,backup:renderBackup,settings:renderSettings,profile:renderProfile})[UI.page](box);return;
   }
   setHeader("More","Everything else in one place");
   const open=k=>{if(k==="focus"){openFocus();return;}UI.page=k;render();window.scrollTo(0,0);};

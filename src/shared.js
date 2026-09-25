@@ -89,7 +89,7 @@ function openJoin(pre){
 function leaveShared(L){
   const go=h("button",{class:"btn primary",style:"background:var(--danger)",text:"Leave"});
   const close=openSheet([h("h3",{text:"Leave “"+L.name+"”?"}),h("p",{class:"muted",text:"It disappears from your lists. Others keep it. You'd need a new invite to rejoin."}),h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
-  go.onclick=()=>{fbDb.collection("shared").doc(L.id).update({members:firebase.firestore.FieldValue.arrayRemove(Store.user.uid)}).catch(sharedFail);Shared.lists.delete(L.id);UI.sharedList=null;close();render();toast("You left "+L.name);};
+  go.onclick=()=>{const FV=firebase.firestore.FieldValue,me=Store.user.uid;fbDb.collection("shared").doc(L.id).update({members:FV.arrayRemove(me),["memberInfo."+me]:FV.delete()}).catch(sharedFail);Shared.lists.delete(L.id);UI.sharedList=null;close();render();toast("You left "+L.name);};
 }
 function openSharedEdit(L){
   const name=h("input",{class:"inp",value:L.name,"aria-label":"List name"});

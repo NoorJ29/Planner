@@ -30,6 +30,7 @@ Each test prints what it checked and ends with `ERRORS: []` when nothing went wr
 - `test_shared_and_calendar.py`: family shared lists (two users) and Google Calendar (`mockgis.js` simulates Google sign-in)
 - `test_laptop_screens.py`: laptop layout screenshots
 - `test_speed.py`: screen switch times with thousands of items
+- `test_profile.py`: profile button and page: stats, rename (also on shared lists), change password, sign out, delete account
 - `test_update_bar.py`: the "new version is ready" bar and Settings → Check for updates (serves its own copy of the app on port 8766)
 
 The browser tests use their own test config, so your real `config.js` keys are never used. On Windows, set `PYTHONUTF8=1` (and build with `python3 -X utf8 build.py`).

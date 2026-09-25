@@ -2,6 +2,9 @@
 import { test, before, beforeEach, after } from "node:test";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
+const deleteField = () => firebase.firestore.FieldValue.delete();
 
 const DAY = 24 * 3600 * 1000;
 let env;
@@ -39,6 +42,13 @@ test("nobody else can read or write your data", async () => {
   await assertFails(db(null).doc("users/alice/tasks/t1").get());
   await assertFails(db("bob").collection("users").get());
 });
+test("you can delete your own account data, and nobody else can", async () => {
+  await env.withSecurityRulesDisabled(ctx => ctx.firestore().doc("users/alice").set({ currency: "USD" }));
+  await assertFails(db("bob").doc("users/alice").delete());
+  await assertFails(db("bob").doc("users/alice/tasks/t1").delete());
+  await assertSucceeds(db("alice").doc("users/alice/tasks/t1").delete());
+  await assertSucceeds(db("alice").doc("users/alice").delete());
+});
 test("anything outside the known paths is blocked", async () => {
   await assertFails(db("alice").doc("other/x").set({ a: 1 }));
   await assertFails(db("alice").collection("shared").get());
@@ -58,6 +68,21 @@ test("non-members can't see the list or its items", async () => {
 });
 test("a member can leave", async () => {
   await assertSucceeds(list("bob").update({ members: ["alice"] }));
+});
+test("leaving can also remove your own name and email", async () => {
+  await assertSucceeds(list("bob").update({ members: ["alice"], "memberInfo.bob": deleteField() }));
+});
+test("leaving can't remove someone else's name", async () => {
+  await assertFails(list("bob").update({ members: ["alice"], "memberInfo.alice": deleteField() }));
+});
+test("a member can update their own name", async () => {
+  await assertSucceeds(list("bob").update({ "memberInfo.bob": info("Robert") }));
+});
+test("a member can't change someone else's name", async () => {
+  await assertFails(list("bob").update({ "memberInfo.alice": info("Hacked") }));
+});
+test("a non-member can't add their name to a list", async () => {
+  await assertFails(list("carol").update({ "memberInfo.carol": info("Carol") }));
 });
 test("a member can't rename the list", async () => {
   await assertFails(list("bob").update({ name: "Mine now" }));

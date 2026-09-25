@@ -39,6 +39,10 @@ service cloud.firestore {
           && request.resource.data.members.toSet() == resource.data.members.toSet().difference([request.auth.uid].toSet())
           && onlyMyInfoChanged();
       }
+      // Any member can update their own name, and nobody else's.
+      function isUpdatingMyInfo() {
+        return isMember() && changed().hasOnly(['memberInfo']) && onlyMyInfoChanged();
+      }
       // Joining with a valid, unexpired invite code: you may only add yourself.
       function isJoining() {
         let inv = get(/databases/$(database)/documents/invites/$(request.resource.data.joinCode)).data;
@@ -54,7 +58,7 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.owner == request.auth.uid
         && request.resource.data.members == [request.auth.uid];
-      allow update: if isOwnerEdit() || isLeaving() || isJoining();
+      allow update: if isOwnerEdit() || isLeaving() || isJoining() || isUpdatingMyInfo();
       allow delete: if isOwner();
 
       match /items/{itemId} {

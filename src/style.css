@@ -41,6 +41,29 @@ body.noqa .wrap{padding-bottom:130px}
 .sync.cloud i{background:var(--accent)}
 .sync.offline i{background:var(--sun)}
 .sync.error i{background:var(--danger)}
+.sync{position:relative}
+.pav{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;background:var(--c,var(--accent));flex:0 0 auto}
+.sync .pav{display:none}
+.sync.user .pav{display:grid}
+.sync.user > i{position:absolute;left:26px;top:30px;width:11px;height:11px;border:2px solid var(--bg)}
+#sync.user span{display:none}
+.hact.user{flex-direction:row;align-items:center;gap:8px}
+#sync.user{padding:0}
+#sync.user .pav{width:42px;height:42px;font-size:17px}
+#sync.user > i{left:31px;top:31px}
+.pav.big{width:64px;height:64px;font-size:28px;font-family:var(--display)}
+.prof{display:flex;align-items:center;gap:16px}
+.pinfo{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pinfo .small{overflow:hidden;text-overflow:ellipsis}
+.pname{font-family:var(--display);font-size:22px;font-weight:700}
+.pstat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-top:4px}
+.pstat i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.pstat.cloud i{background:var(--accent)}
+.pstat.offline i{background:var(--sun)}
+.pstat.error i{background:var(--danger)}
+.pform{display:flex;flex-direction:column;gap:8px}
+.card.dz{border-color:var(--danger)}
+.btn.dzbtn{background:transparent;color:var(--danger);border:1.5px solid var(--danger)}
 
 /* segmented controls */
 .calbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px}

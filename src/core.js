@@ -117,7 +117,7 @@ const Store={
     return d;
   },
   goLocal(){
-    this.stop();this.mode="local";this.user=null;this.reset();
+    this.stop();this.mode="local";this.user=null;this.reset();syncErr=false;
     const d=this.readLocal();
     if(d){COLS.forEach(c=>(d[c]||[]).forEach(x=>x&&x.id&&D[c].set(x.id,x)));if(d.settings)SET=Object.assign(clone(SET_DEFAULT),d.settings);if(!Array.isArray(SET.linkCats)||!SET.linkCats.length)SET.linkCats=clone(SET_DEFAULT.linkCats);}
     UI.ready=true;updateSync();render();
@@ -127,7 +127,8 @@ const Store={
     catch(e){toast("Couldn't save on this device. Its storage may be full.");}
   },250),
   async goCloud(u){
-    this.stop();this.mode="cloud";this.user=u;this.reset();UI.ready=false;updateSync();render();
+    this.stop();this.mode="cloud";this.user=u;this.reset();UI.ready=false;syncErr=false;updateSync();render();
+    u.reload().then(()=>{updateSync();render();}).catch(()=>{}); // picks up a name changed on another device
     this.base=fbDb.collection("users").doc(u.uid);
     await this.migrateLocal();
     COLS.forEach(c=>{
@@ -172,19 +173,31 @@ const Store={
   }
 };
 
-function updateSync(forced){
-  let mode,label;
-  if(forced==="error"){mode="error";label="Sync problem";}
-  else if(Store.mode==="cloud"){if(navigator.onLine){mode="cloud";label=UI.ready?"Synced":"Syncing…";}else{mode="offline";label="Offline";}}
-  else{mode="local";label=fbAuth?"Sign in to sync":fbFailed?"Offline":"This device only";}
-  document.querySelectorAll(".sync").forEach(el=>{el.className="sync "+mode;el.querySelector("span").textContent=label;});
+let syncErr=false;
+function syncState(){
+  if(Store.mode==="cloud"){
+    if(syncErr)return{mode:"error",label:"Sync problem",long:"Sync problem. Close and reopen the app to try again."};
+    if(!navigator.onLine)return{mode:"offline",label:"Offline",long:"Offline. Your changes are saved and will sync when you reconnect."};
+    return UI.ready?{mode:"cloud",label:"Synced",long:"Synced across your devices"}:{mode:"cloud",label:"Syncing…",long:"Syncing…"};}
+  return{mode:"local",label:fbAuth?"Sign in to sync":fbFailed?"Offline":"This device only",long:""};
 }
-window.addEventListener("online",()=>updateSync());window.addEventListener("offline",()=>updateSync());
+function updateSync(forced){
+  if(forced==="error")syncErr=true;
+  const st=syncState(),u=Store.user,me=u&&meInfo();
+  const hact=$(".hact");if(hact)hact.classList.toggle("user",!!u);
+  document.querySelectorAll(".sync").forEach(el=>{
+    el.className="sync "+st.mode+(u?" user":"");
+    const av=el.querySelector(".pav");if(av){av.textContent=me?me.name.charAt(0).toUpperCase():"";av.style.setProperty("--c",u?colorFor(u.uid):"");}
+    el.querySelector("span").textContent=u&&el.id!=="sync"?me.name+" · "+st.label:st.label;
+    el.setAttribute("aria-label",u?"Your profile: "+st.label:st.label);
+  });
+}
+window.addEventListener("online",()=>{syncErr=false;updateSync();render();});window.addEventListener("offline",()=>{updateSync();render();});
 
 function authMsg(e){const c=(e&&e.code)||"";
   if(c.includes("invalid-credential")||c.includes("wrong-password")||c.includes("user-not-found"))return"That email and password don't match. Check them, or create an account.";
   if(c.includes("email-already-in-use"))return"There's already an account with that email. Sign in instead.";
-  if(c.includes("weak-password"))return"Use a password with at least 6 characters.";
+  if(c.includes("weak-password")||c.includes("password-does-not-meet-requirements"))return"Use a password with at least 8 characters.";
   if(c.includes("invalid-email"))return"That doesn't look like an email address.";
   if(c.includes("network"))return"No internet connection. Connect and try again.";
   if(c.includes("too-many-requests"))return"Too many attempts. Wait a minute and try again.";
@@ -196,13 +209,9 @@ function openAccount(){
   if(!fbAuth){
     const close=openSheet(fbFailed?[h("h3",{text:"Can't reach sync"}),h("p",{class:"muted",text:"The app couldn't connect to sync, so it's using what's saved on this device. Check your internet, then close and reopen the app."}),h("div",{class:"actions"},h("button",{class:"btn primary",text:"OK",onclick:()=>close()}))]:[h("h3",{text:"Sync isn't set up yet"}),h("p",{class:"muted",text:"Everything is saved on this device only. To sync your phone and laptop, add your Firebase details to config.js. The setup guide walks you through it."}),h("div",{class:"actions"},h("button",{class:"btn primary",text:"OK",onclick:()=>close()}))],{cls:"acct"});return;
   }
-  if(Store.user){
-    const out=h("button",{class:"btn ghost",text:"Sign out"});
-    const close=openSheet([h("h3",{text:"Your account"}),h("p",{class:"muted",text:"Signed in as "+(Store.user.email||"")+". Sign in with the same email on your other devices and everything stays in sync."}),h("p",{class:"muted",text:navigator.onLine?"Status: connected and syncing.":"Status: offline. Changes are saved and will sync when you reconnect."}),h("div",{class:"actions"},out,h("button",{class:"btn primary",text:"Done",onclick:()=>close()}))],{cls:"acct"});
-    out.onclick=()=>{fbAuth.signOut();close();toast("Signed out");};return;
-  }
+  if(Store.user){openProfile();return;}
   const email=h("input",{class:"inp",type:"email",placeholder:"you@example.com",autocomplete:"email","aria-label":"Email"});
-  const pass=h("input",{class:"inp",type:"password",placeholder:"At least 6 characters",autocomplete:"current-password","aria-label":"Password"});
+  const pass=h("input",{class:"inp",type:"password",placeholder:"At least 8 characters for a new account",autocomplete:"current-password","aria-label":"Password"});
   const err=h("div",{class:"small",style:"color:var(--danger);min-height:20px;margin-top:10px",role:"alert"});
   const signin=h("button",{class:"btn primary",text:"Sign in"}),create=h("button",{class:"btn ghost",text:"Create account"});
   const forgot=h("button",{class:"linkbtn",text:"Forgot password?"}),skip=h("button",{class:"linkbtn",text:"Use without syncing"});
@@ -213,7 +222,7 @@ function openAccount(){
   async function go(fn,btn){err.textContent="";const e=email.value.trim(),p=pass.value;if(!e||!p){err.textContent="Enter your email and password.";return;}
     btn.disabled=true;try{await fn(e,p);lsSet("planner.skipSync","0");close();toast("Signed in. Syncing is on.");}catch(x){err.textContent=authMsg(x);}btn.disabled=false;}
   signin.onclick=()=>go((e,p)=>fbAuth.signInWithEmailAndPassword(e,p),signin);
-  create.onclick=()=>go((e,p)=>fbAuth.createUserWithEmailAndPassword(e,p),create);
+  create.onclick=()=>{if(pass.value&&pass.value.length<8){err.textContent="Use a password with at least 8 characters.";return;}go((e,p)=>fbAuth.createUserWithEmailAndPassword(e,p),create);};
   pass.addEventListener("keydown",e=>{if(e.key==="Enter")signin.click();});
   forgot.onclick=async()=>{const e=email.value.trim();if(!e){err.textContent="Type your email first, then tap Forgot password.";return;}try{await fbAuth.sendPasswordResetEmail(e);err.textContent="";toast("Reset link sent to "+e);}catch(x){err.textContent=authMsg(x);}};
   skip.onclick=()=>{lsSet("planner.skipSync","1");close();};
