@@ -22,7 +22,7 @@ A single-page installable web app (PWA) hosted on GitHub Pages, with optional sy
 
 ## Data model (Firestore)
 - `users/{uid}` holds settings (lists, categories, budget, currency, linkCats, dashboard).
-- `users/{uid}/{tasks|habits|notes|goals|expenses|shop|links|focus|subs|countdowns|templates}/{id}` holds one document per item.
+- `users/{uid}/{tasks|habits|notes|folders|goals|expenses|shop|links|focus|subs|countdowns|templates}/{id}` holds one document per item. Note folders are `{name,parentId,color}`; a note's `folderId` points at one ("" means top level).
 - `shared/{listId}` (+ `items/`) holds family lists; `invites/{code}` holds join codes.
 
 Without Firebase config, everything is stored in `localStorage` (`planner.v2`).

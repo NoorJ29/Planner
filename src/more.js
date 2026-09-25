@@ -412,7 +412,7 @@ function openSearch(){
     const has=(...f)=>f.some(x=>x&&String(x).toLowerCase().includes(s));
     const groups=[
       ["Tasks",vals("tasks").filter(t=>has(t.title,t.notes,...(t.subtasks||[]).map(x=>x.text))).sort((a,b)=>(a.done?1:0)-(b.done?1:0)),t=>[t.title+(t.done?" ✓":""),t.date?relLabel(t.date):"No date",go(()=>openTask(t))]],
-      ["Notes",vals("notes").filter(n=>n.type!=="journal"&&has(n.title,n.body)),n=>[n.title||"Untitled",snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="notes";render();openNote(n);})]],
+      ["Notes",vals("notes").filter(n=>n.type!=="journal"&&has(n.title,n.body)),n=>[n.title||"Untitled",(noteFolderOf(n)?"📁 "+folderLabel(noteFolderOf(n))+" · ":"")+snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="notes";render();openNote(n);})]],
       ["Journal",vals("notes").filter(n=>n.type==="journal"&&has(n.body)),n=>[longDate(n.date),snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="journal";render();openJournal(n.date);})]],
       ["Habits",vals("habits").filter(x=>has(x.name)),x=>[x.emoji+" "+x.name,"Habit",go(()=>{UI.tab="habits";render();openHabit(x);})]],
       ["Goals",vals("goals").filter(g=>has(g.title,g.why)),g=>["🎯 "+g.title,goalProgress(g).text,go(()=>openGoal(g))]],

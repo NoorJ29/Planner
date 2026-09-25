@@ -2,7 +2,7 @@
 const COLORS=["#0F7B6C","#E9A21F","#D8574B","#7B5CD6","#2F86C9","#6B7C78","#C24F8E"];
 const DEFAULT_LISTS=[{id:"personal",name:"Personal",color:"#0F7B6C"},{id:"work",name:"Work",color:"#2F86C9"},{id:"home",name:"Home",color:"#E9A21F"}];
 const DEFAULT_CATS=[{id:"food",name:"Food",emoji:"🍔"},{id:"transport",name:"Transport",emoji:"🚌"},{id:"shopping",name:"Shopping",emoji:"🛍️"},{id:"bills",name:"Bills",emoji:"💡"},{id:"fun",name:"Fun",emoji:"🎉"},{id:"health",name:"Health",emoji:"💊"},{id:"other",name:"Other",emoji:"📦"}];
-const COLS=["tasks","habits","notes","goals","expenses","shop","links","focus","subs","countdowns","templates"];
+const COLS=["tasks","habits","notes","folders","goals","expenses","shop","links","focus","subs","countdowns","templates"];
 const SET_DEFAULT={lists:DEFAULT_LISTS,shopLists:[{id:"groceries",name:"Groceries"}],categories:DEFAULT_CATS,budget:0,catBudgets:{},currency:"",currencySymbol:"",linkCats:[{id:"general",name:"General",emoji:"🌐",color:"#2F86C9"},{id:"work",name:"Work",emoji:"💼",color:"#0F7B6C"},{id:"fun",name:"Fun",emoji:"🎬",color:"#D8574B"}]};
 const LS1="planner.v1",LS2="planner.v2";
 const JSPDF="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
@@ -68,7 +68,7 @@ function bar(pct,over){return h("div",{class:"progress"+(over?" over":""),"aria-
 const D={};COLS.forEach(c=>D[c]=new Map());
 let SET=clone(SET_DEFAULT);
 const MQ=window.matchMedia("(min-width: 1000px)");
-const UI={desktop:MQ.matches,ready:false,tab:"home",sharedList:null,insPeriod:"30",planView:"day",sel:todayKey(),cal:lsGet("planner.cal",MQ.matches?"month":"week"),month:todayKey().slice(0,7),stripScroll:null,notesSeg:"notes",moneyMonth:todayKey().slice(0,7),page:null,shopList:"groceries",reviewWeek:0,expanded:new Set(),linkCat:"",linkQuery:"",linkEdit:false};
+const UI={desktop:MQ.matches,ready:false,tab:"home",noteFolder:lsGet("planner.noteFolder",""),noteDeep:lsGet("planner.noteDeep","0")==="1",folderOpen:new Set(),sharedList:null,insPeriod:"30",planView:"day",sel:todayKey(),cal:lsGet("planner.cal",MQ.matches?"month":"week"),month:todayKey().slice(0,7),stripScroll:null,notesSeg:"notes",moneyMonth:todayKey().slice(0,7),page:null,shopList:"groceries",reviewWeek:0,expanded:new Set(),linkCat:"",linkQuery:"",linkEdit:false};
 const vals=c=>[...D[c].values()];
 const listById=id=>SET.lists.find(l=>l.id===id);
 const catById=id=>SET.categories.find(c=>c.id===id)||{id,name:"Other",emoji:"📦"};

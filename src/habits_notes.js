@@ -79,15 +79,10 @@ function renderNotes(main){
   const nn=notes.filter(n=>n.type!=="journal"),jj=notes.filter(n=>n.type==="journal").sort((a,b)=>a.date<b.date?1:-1);
   setHeader(UI.notesSeg==="journal"?"Journal":"Notes",UI.notesSeg==="journal"?plural(jj.length,"entry").replace("entrys","entries"):plural(nn.length,"note"));
   main.append(h("div",{class:"calbar"},seg([["notes","Notes"],["journal","Journal"]],UI.notesSeg,v=>{UI.notesSeg=v;render();}),
-    h("button",{class:"jump",text:"Export",onclick:()=>UI.notesSeg==="journal"?openJournalExport():openExport(nn.sort((a,b)=>b.updatedAt-a.updatedAt).map(noteDoc),"My notes","notes")})));
-  if(UI.notesSeg==="notes"){
-    main.append(h("div",{class:"btnrow"},h("button",{class:"btn primary wide",text:"+ New note",onclick:()=>openNote(null)})));
-    if(!nn.length){main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Planner to save it here."})));return;}
-    const sorted=nn.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updatedAt-a.updatedAt);
-    const shownN=UI.expanded.has("notes")?sorted:sorted.slice(0,40);
-    if(shownN.length<sorted.length)setTimeout(()=>{const b=h("button",{class:"linkbtn",text:"Show all "+sorted.length,onclick:()=>{UI.expanded.add("notes");render();}});main.append(b);},0);
-    main.append(h("div",{class:"cards grid sec"},shownN.map(n=>h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,h("div",{class:"small muted",text:"Edited "+ago(n.updatedAt)})))));
-  }else{
+    h("button",{class:"jump",text:"Export",onclick:()=>{if(UI.notesSeg==="journal"){openJournalExport();return;}const cf=curFolder(),list=notesInView(nn,cf);
+      openExport(list.sort((a,b)=>b.updatedAt-a.updatedAt).map(noteDoc),cf?D.folders.get(cf).name:"My notes",cf?D.folders.get(cf).name:"notes");}})));
+  if(UI.notesSeg==="notes")renderNoteFolder(main,nn);
+  else{
     const tk=todayKey(),today=D.notes.get("j-"+tk);
     let jst=0;for(let i=0;i<400;i++){const k=key(addDays(new Date(),-i));if(D.notes.has("j-"+k))jst++;else if(i>0)break;}
     const m=today&&moodOf(today.mood);
@@ -107,6 +102,96 @@ function renderNotes(main){
 function noteDoc(n){return{title:n.title||"Untitled",meta:"Last edited "+new Date(n.updatedAt).toLocaleString(),body:n.body||""};}
 function journalDoc(j){const m=moodOf(j.mood);return{title:longDate(j.date),meta:m?"Mood: "+m[2]:"",body:j.body||""};}
 
+/* ================= note folders ================= */
+// A folder is {id,name,parentId,color}. A note's folderId points at one; "" (or a deleted folder) means top level.
+const byName=(a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:"base",numeric:true});
+const folderKids=pid=>vals("folders").filter(f=>(D.folders.has(f.parentId)?f.parentId:"")===(pid||"")).sort(byName);
+function folderPath(id){const out=[];let f=D.folders.get(id);while(f&&out.length<50&&!out.includes(f)){out.unshift(f);f=D.folders.get(f.parentId);}return out;}
+const folderLabel=id=>folderPath(id).map(f=>f.name).join(" › ");
+function folderTree(id){const out=new Set([id]);let grew=true;while(grew){grew=false;for(const f of D.folders.values())if(out.has(f.parentId)&&!out.has(f.id)){out.add(f.id);grew=true;}}return out;} // the folder and everything inside it
+const noteFolderOf=n=>n.folderId&&D.folders.has(n.folderId)?n.folderId:"";
+function curFolder(){if(UI.noteFolder&&!D.folders.has(UI.noteFolder))UI.noteFolder="";return UI.noteFolder;}
+function notesInView(nn,cf){if(!UI.noteDeep)return nn.filter(n=>noteFolderOf(n)===cf);if(!cf)return nn;const t=folderTree(cf);return nn.filter(n=>t.has(noteFolderOf(n)));}
+function openFolder(id){UI.noteFolder=id||"";lsSet("planner.noteFolder",UI.noteFolder);folderPath(id).forEach(f=>UI.folderOpen.add(f.parentId||""));render();window.scrollTo(0,0);}
+function renderNoteFolder(main,nn){
+  const cf=curFolder(),f=cf&&D.folders.get(cf),path=folderPath(cf);
+  const crumbs=h("nav",{class:"crumbs","aria-label":"Folders"},h("button",{text:"All notes","aria-current":cf?"false":"page",onclick:()=>openFolder("")}),
+    path.map((p,i)=>[h("span",{class:"sep","aria-hidden":"true",text:"›"}),h("button",{text:p.name,"aria-current":i===path.length-1?"page":"false",onclick:()=>openFolder(p.id)})]));
+  const top=h("div",{class:"fbar"},crumbs,f?h("button",{class:"x fmenu","aria-label":"Folder options",text:"⋯",onclick:()=>openFolderMenu(f)}):null);
+  const count=id=>{const t=folderTree(id);return nn.filter(n=>t.has(noteFolderOf(n))).length;};
+  const kids=folderKids(cf);
+  const tiles=h("div",{class:"ftiles"},kids.map(k=>{const c=count(k.id);return h("button",{class:"ftile",style:"--c:"+(k.color||COLORS[0]),onclick:()=>openFolder(k.id)},h("i",{"aria-hidden":"true",text:"📁"}),h("b",{text:k.name}),h("span",{text:c?plural(c,"note"):"Empty"}));}),
+    h("button",{class:"ftile fnew",onclick:()=>openFolderEdit(null,cf)},h("i",{"aria-hidden":"true",text:"＋"}),h("b",{text:"Folder"}),h("span",{text:cf?"Inside "+f.name:"New folder"})));
+  const deep=h("label",{class:"deepsw"},h("input",{type:"checkbox",checked:UI.noteDeep,"aria-label":cf?"Include subfolders":"Show notes from all folders",onchange:e=>{UI.noteDeep=e.target.checked;lsSet("planner.noteDeep",UI.noteDeep?"1":"0");render();}}),h("span",{text:cf?"Include subfolders":"Show notes from all folders"}));
+  const list=notesInView(nn,cf).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updatedAt-a.updatedAt);
+  const body=h("div",{class:"fmain"},top,tiles,h("div",{class:"frow"},deep),h("div",{class:"btnrow",style:"margin-top:10px"},h("button",{class:"btn primary wide",text:"+ New note",onclick:()=>openNote(null)})));
+  if(!list.length)body.append(h("div",{class:"sec"},h("div",{class:"empty",text:nn.length?(cf?"No notes in "+f.name+" yet.":UI.noteDeep?"No notes yet.":"No notes outside folders. Open a folder above, or switch on “Show notes from all folders”."):"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Planner to save it here."})));
+  else{
+    const shown=UI.expanded.has("notes")?list:list.slice(0,40);
+    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
+      h("div",{class:"small muted",text:(nf!==cf&&nf?"📁 "+folderLabel(nf)+" · ":"")+"Edited "+ago(n.updatedAt)}));})));
+    if(shown.length<list.length)body.append(h("button",{class:"linkbtn",text:"Show all "+list.length,onclick:()=>{UI.expanded.add("notes");render();}}));
+  }
+  if(!UI.desktop){main.append(body);return;}
+  main.append(h("div",{class:"flayout"},folderTreeNav(cf),body));
+}
+function folderTreeNav(cf){
+  const box=h("nav",{class:"ftree","aria-label":"Folder tree"});
+  const row=(id,name,depth,hasKids)=>h("div",{class:"frow2",style:"--d:"+depth},
+    hasKids&&id?h("button",{class:"ftog","aria-expanded":String(UI.folderOpen.has(id)),"aria-label":(UI.folderOpen.has(id)?"Collapse ":"Expand ")+name,text:"›",onclick:()=>{UI.folderOpen.has(id)?UI.folderOpen.delete(id):UI.folderOpen.add(id);render();}}):h("span",{class:"ftog"}),
+    h("button",{class:"fname","aria-current":id===cf?"page":"false",text:name,onclick:()=>openFolder(id)}));
+  UI.folderOpen.add("");box.append(row("","All notes",0,folderKids("").length>0));
+  const walk=(pid,depth)=>{if(!UI.folderOpen.has(pid))return;folderKids(pid).forEach(k=>{box.append(row(k.id,k.name,depth,folderKids(k.id).length>0));walk(k.id,depth+1);});};
+  walk("",1);return box;
+}
+function openFolderEdit(f,parentId){
+  const isNew=!f;const d=f?clone(f):{id:uid(),name:"",parentId:parentId||"",color:COLORS[vals("folders").length%COLORS.length],createdAt:Date.now()};
+  const name=h("input",{class:"inp",value:d.name,maxlength:"60",placeholder:"e.g. Work, Recipes, Uni","aria-label":"Folder name"});
+  const sw=h("div",{class:"swatches",style:"margin-top:8px"});
+  const drawSw=()=>{sw.textContent="";COLORS.forEach(c=>sw.append(h("button",{type:"button",class:"sw",style:"background:"+c,"aria-label":"Colour","aria-pressed":String(c===d.color),onclick:()=>{d.color=c;drawSw();}})));};drawSw();
+  const save=h("button",{class:"btn primary",text:isNew?"Create":"Save"});
+  const close=openSheet([h("h3",{text:isNew?(d.parentId?"New folder in "+D.folders.get(d.parentId).name:"New folder"):"Rename folder"}),name,h("div",{class:"field"},h("span",{class:"lbl",text:"Colour"}),sw),
+    h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),save)]);
+  save.onclick=()=>{const n=name.value.trim().replace(/\s+/g," ");if(!n){name.focus();toast("Give the folder a name.");return;}d.name=n;Store.put("folders",d);close();};
+  name.addEventListener("keydown",e=>{if(e.key==="Enter")save.click();});
+  setTimeout(()=>name.focus(),60);
+}
+// Folder picker: shows the tree; "exclude" folders can't be chosen (a folder can't go inside itself).
+function pickFolder(title,current,exclude,onPick){
+  const list=h("div",{class:"fpick"});
+  const opt=(id,label,depth)=>list.append(h("button",{type:"button",style:"--d:"+depth,"aria-pressed":String(id===current),disabled:exclude.has(id),onclick:()=>{close();onPick(id);}},label));
+  opt("",current===undefined?"Top level":"📁 No folder (top level)",0);
+  const walk=(pid,depth)=>folderKids(pid).forEach(k=>{opt(k.id,"📁 "+k.name,depth);walk(k.id,depth+1);});walk("",1);
+  if(current!==undefined&&!D.folders.size)list.append(h("p",{class:"small muted",text:"No folders yet. Create one from the Notes page with + Folder."}));
+  const close=openSheet([h("h3",{text:title}),list,h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}))]);
+}
+function openFolderMenu(f){
+  const act=(label,fn)=>h("button",{class:"mi",onclick:()=>{close();fn();}},h("b",{text:label}));
+  const close=openSheet([h("h3",{text:"📁 "+f.name}),h("div",{class:"menu alist"},
+    act("Rename or change colour",()=>openFolderEdit(f)),
+    act("Move to another folder",()=>{const ex=folderTree(f.id);if(!f.parentId)ex.add("");pickFolder("Move “"+f.name+"” to…",undefined,ex,to=>{Store.put("folders",Object.assign(clone(f),{parentId:to}));openFolder(f.id);toast("Moved to "+(to?D.folders.get(to).name:"the top level"));});}),
+    act("Delete folder",()=>deleteFolder(f)))]);
+}
+function deleteFolder(f){
+  const t=folderTree(f.id),notes=vals("notes").filter(n=>n.type!=="journal"&&t.has(noteFolderOf(n))),subs=t.size-1,parent=D.folders.has(f.parentId)?f.parentId:"";
+  const what=[notes.length?plural(notes.length,"note"):"",subs?plural(subs,"subfolder"):""].filter(Boolean).join(" and ");
+  const done=changes=>{if(t.has(UI.noteFolder))openFolder(parent);else render();return changes;};
+  const keep=()=>{const ch=[];
+    for(const k of folderKids(f.id)){ch.push(["folders",snap("folders",k.id),k.id]);Store.put("folders",Object.assign(clone(k),{parentId:parent}));}
+    for(const n of vals("notes"))if(n.type!=="journal"&&noteFolderOf(n)===f.id){ch.push(["notes",snap("notes",n.id),n.id]);Store.put("notes",Object.assign(clone(n),{folderId:parent}));}
+    ch.push(["folders",snap("folders",f.id),f.id]);Store.del("folders",f.id);undoable("Folder deleted. Its contents moved up.",done(ch));};
+  const all=()=>{const ch=[];
+    for(const n of notes){ch.push(["notes",snap("notes",n.id),n.id]);Store.del("notes",n.id);}
+    for(const id of t){ch.push(["folders",snap("folders",id),id]);Store.del("folders",id);}
+    undoable("Deleted "+f.name+(what?" and "+what:""),done(ch));};
+  if(!what){close0();return;}
+  function close0(){const ch=[["folders",snap("folders",f.id),f.id]];Store.del("folders",f.id);undoable("Folder deleted",done(ch));}
+  const close=openSheet([h("h3",{text:"Delete “"+f.name+"”?"}),h("p",{class:"muted",text:"It has "+what+" inside. What should happen to them?"}),
+    h("div",{class:"menu alist"},h("button",{class:"mi",onclick:()=>{close();keep();}},h("b",{text:"Keep the notes"}),h("span",{text:"Move everything up to "+(parent?D.folders.get(parent).name:"the top level")})),
+      h("button",{class:"mi",onclick:()=>{close();all();}},h("b",{style:"color:var(--danger)",text:"Delete everything inside"}),h("span",{text:"Deletes "+what}))),
+    h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}))]);
+}
+
 function editorSheet({titleVal,titlePh,bodyVal,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn}){
   const status=h("span",{class:"saved",text:""});
   const title=titlePh!=null?h("input",{class:"note-title",value:titleVal||"",placeholder:titlePh,"aria-label":"Title"}):null;
@@ -122,12 +207,15 @@ function editorSheet({titleVal,titlePh,bodyVal,bodyPh,head,extra,onChange,onClos
   return {title,body,close,changed};
 }
 function openNote(n){
-  let cur=n?clone(n):null;
+  let cur=n?clone(n):null,folderId=cur?noteFolderOf(cur):(UI.tab==="notes"?curFolder():"");
   const pin=h("button",{class:"chip","aria-pressed":String(!!(cur&&cur.pinned)),text:"📌 Pin"});
+  const fchip=h("button",{class:"chip fchip",title:"Move to a folder"});
+  const drawF=()=>{fchip.textContent="📁 "+(folderId?folderLabel(folderId):"No folder");};drawF();
+  fchip.onclick=()=>pickFolder("Move note to…",folderId,new Set(),id=>{folderId=id;drawF();if(cur){cur.folderId=id;Store.put("notes",cur);}});
   const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",bodyVal:cur&&cur.body,bodyPh:"Start writing…",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:n?"Note":"New note"}),
-    extra:h("div",{class:"row",style:"margin-bottom:6px"},pin),
-    onChange:({title,body})=>{if(!cur){if(!title.trim()&&!body.trim())return;cur=newNote({});}cur.title=title;cur.body=body;cur.updatedAt=Date.now();Store.put("notes",cur);},
+    extra:h("div",{class:"row",style:"margin-bottom:6px"},pin,fchip),
+    onChange:({title,body})=>{if(!cur){if(!title.trim()&&!body.trim())return;cur=newNote({folderId});}cur.title=title;cur.body=body;cur.updatedAt=Date.now();Store.put("notes",cur);},
     onClose:()=>{if(cur&&!cur.title.trim()&&!cur.body.trim())Store.del("notes",cur.id);},
     exportFn:()=>{if(cur)openExport([noteDoc(cur)],cur.title||"Note",(cur.title||"note"));else toast("Write something first.");},
     deleteFn:()=>{if(cur&&D.notes.has(cur.id)){const prev=snap("notes",cur.id);Store.del("notes",cur.id);undoable("Note deleted",[["notes",prev,cur.id]]);}}});
