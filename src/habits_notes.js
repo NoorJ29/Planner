@@ -193,7 +193,7 @@ function deleteFolder(f){
 }
 
 // The note and journal editor: a full-screen sheet with the rich text editor (see editor.js).
-function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn}){
+function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn,noteId}){
   const status=h("span",{class:"saved",text:""});
   const title=titlePh!=null?h("input",{class:"note-title",value:titleVal||"",placeholder:titlePh,"aria-label":"Title"}):null;
   const host=h("div",{class:"rich-host"},h("div",{class:"small muted",style:"padding:14px 2px",text:"Opening the editor…"}));
@@ -208,10 +208,10 @@ function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,e
   let deleted=false;
   const tools=h("div",{class:"row"},exportFn?h("button",{class:"chip",text:"Export",onclick:()=>{saveNow.flush();exportFn();}}):null,deleteFn?h("button",{class:"chip",text:"Delete",onclick:()=>{saveNow.flush();saveNow.cancel();deleted=true;close();deleteFn();}}):null);
   const close=openSheet([h("div",{class:"shead"},h("div",{style:"min-width:0"},head,status),done),extra||null,title,host,h("div",{style:"padding-top:10px"},tools)],
-    {full:true,onClose:()=>{closed=true;if(deleted)return;saveNow.flush();onClose&&onClose();}});
+    {full:true,onClose:()=>{closed=true;if(deleted)return;saveNow.flush();onClose&&onClose();const id=noteId&&noteId(true);if(id)setTimeout(()=>sweepFiles(id),1500);}});
   done.onclick=close;
   const start=noteDelta(note);
-  const ready=loadEditor().then(Q=>{if(!closed)q=mountEditor(Q,host,start,bodyPh,changed);}).catch(e=>{console.error(e);if(closed)return;host.textContent="";
+  const ready=loadEditor().then(Q=>{if(!closed)q=mountEditor(Q,host,start,bodyPh,changed,()=>noteId());}).catch(e=>{console.error(e);if(closed)return;host.textContent="";
     host.append(h("div",{class:"rbanner",role:"status",text:"Formatting tools need the internet once. You can read this note now; editing will work when you're back online."}),renderDocReadOnly(start));});
   return{title,close,changed,ready,snapshot,focus:()=>ready.then(()=>{if(q)q.focus();})};
 }
@@ -224,10 +224,11 @@ function openNote(n){
   const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",note:cur,bodyPh:"Start writing…",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:n?"Note":"New note"}),
     extra:h("div",{class:"row",style:"margin-bottom:6px"},pin,fchip),
-    onChange:({title,body,doc})=>{if(!cur){if(!title.trim()&&!(body||"").trim())return;cur=newNote({folderId});}cur.title=title;if(doc){cur.body=body;cur.doc=doc;}cur.updatedAt=Date.now();Store.put("notes",cur);},
-    onClose:()=>{if(cur&&!cur.title.trim()&&!(cur.body||"").trim())Store.del("notes",cur.id);},
+    onChange:({title,body,doc})=>{if(!cur){if(!title.trim()&&!(body||"").trim()&&!noteFileIds({doc}).size)return;cur=newNote({folderId});}cur.title=title;if(doc){cur.body=body;cur.doc=doc;}cur.updatedAt=Date.now();Store.put("notes",cur);},
+    onClose:()=>{if(cur&&!cur.title.trim()&&!(cur.body||"").trim()&&!noteFileIds(cur).size)Store.del("notes",cur.id);},
+    noteId:peek=>{if(!cur&&!peek){cur=newNote({folderId,title:ed.title.value});Store.put("notes",cur);}return cur&&cur.id;},
     exportFn:()=>{if(cur)openExport([noteDoc(cur)],cur.title||"Note",(cur.title||"note"));else toast("Write something first.");},
-    deleteFn:()=>{if(cur&&D.notes.has(cur.id)){const prev=snap("notes",cur.id);Store.del("notes",cur.id);undoable("Note deleted",[["notes",prev,cur.id]]);}}});
+    deleteFn:()=>{if(cur&&D.notes.has(cur.id)){const prev=snap("notes",cur.id);Store.del("notes",cur.id);undoable("Note deleted",[["notes",prev,cur.id]]);setTimeout(()=>{if(!D.notes.has(prev.id))sweepFiles(prev.id);},15000);}}});
   pin.onclick=()=>{if(!cur){toast("Write something first.");return;}cur.pinned=!cur.pinned;pin.setAttribute("aria-pressed",String(cur.pinned));Store.put("notes",Object.assign(cur,{updatedAt:Date.now()}));};
   if(!n)ed.focus();
 }
@@ -239,10 +240,11 @@ function openJournal(k){
   const ed=editorSheet({note:cur,bodyPh:"What happened today? What went well? What are you grateful for?",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:k===todayKey()?"Today":fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),
     extra:h("div",{style:"margin:4px 0 10px"},moods),
-    onChange:({body,doc})=>{if(!doc)return;if(!cur){if(!body.trim())return;cur=newNote({id,type:"journal",date:k});}cur.body=body;cur.doc=doc;cur.updatedAt=Date.now();Store.put("notes",cur);},
-    onClose:()=>{if(cur&&!(cur.body||"").trim()&&!cur.mood)Store.del("notes",id);},
+    onChange:({body,doc})=>{if(!doc)return;if(!cur){if(!body.trim()&&!noteFileIds({doc}).size)return;cur=newNote({id,type:"journal",date:k});}cur.body=body;cur.doc=doc;cur.updatedAt=Date.now();Store.put("notes",cur);},
+    onClose:()=>{if(cur&&!(cur.body||"").trim()&&!cur.mood&&!noteFileIds(cur).size)Store.del("notes",id);},
+    noteId:()=>id,
     exportFn:()=>{if(cur)openExport([journalDoc(cur)],"Journal: "+longDate(k),"journal-"+k);else toast("Write something first.");},
-    deleteFn:()=>{if(D.notes.has(id)){const prev=snap("notes",id);Store.del("notes",id);undoable("Entry deleted",[["notes",prev,id]]);}}});
+    deleteFn:()=>{if(D.notes.has(id)){const prev=snap("notes",id);Store.del("notes",id);undoable("Entry deleted",[["notes",prev,id]]);setTimeout(()=>{if(!D.notes.has(id))sweepFiles(id);},15000);}}});
   drawM();
   if(!cur)ed.focus();
 }
@@ -270,7 +272,7 @@ function pdfSafe(s){return String(s).replace(/[\u2018\u2019]/g,"'").replace(/[\u
 const docBlocks=e=>docToBlocks(validateDoc(e.doc)||deltaFromText(e.body));
 const hexRgb=x=>[parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)];
 async function makePdf(docs,docTitle){
-  await loadScript(JSPDF);const {jsPDF}=window.jspdf;
+  await loadScript(JSPDF);const {jsPDF}=window.jspdf,pics=await exportPictures(docs);
   const pdf=new jsPDF({unit:"pt",format:"a4"});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight(),M=56,INK="16302B",BODY="1E1E1E";let y=M;
   const ensure=hh=>{if(y+hh>H-M){pdf.addPage();y=M;}};
   pdf.setTextColor(...hexRgb(INK));pdf.setFont("helvetica","bold");pdf.setFontSize(22);pdf.text(pdfSafe(docTitle),M,y+6);y+=34;
@@ -299,6 +301,8 @@ async function makePdf(docs,docTitle){
   const blocks=list=>{const nums=listNumbers(list),X=M,MW=W-2*M,sz=11.5;
     list.forEach((b,i)=>{
       if(b.kind==="hr"){y+=6;ensure(12);pdf.setDrawColor(190);pdf.setLineWidth(1);pdf.line(X,y,X+MW,y);y+=12;return;}
+      if(b.kind==="pic"){const pc=pics.get(b.id);if(!pc){para([{text:"[Picture not available]",i:true}],X,MW,sz,false,"","8A8A8A",0);return;}
+        let w=Math.min(MW,pc.w*.75),hh=w*pc.h/pc.w;if(hh>360){hh=360;w=hh*pc.w/pc.h;}ensure(hh+10);pdf.addImage(pc.dataUrl,"JPEG",X,y+4,w,hh);y+=hh+10;return;}
       if(b.kind==="table"){const cols=Math.max(...b.rows.map(r=>r.cells.length)),cw=MW/cols;y+=4;
         b.rows.forEach(r=>{const cells=r.cells.map(c=>layout(c,sz-1,false,cw-12));const rh=Math.max(...cells.map(ls=>ls.reduce((a,l)=>a+lineH(l,sz-1),0)||(sz-1)*1.42))+10;ensure(rh);
           pdf.setDrawColor(170);pdf.setLineWidth(.6);for(let c=0;c<cols;c++)pdf.rect(X+c*cw,y,cw,rh);
@@ -321,7 +325,7 @@ async function makePdf(docs,docTitle){
   return pdf.output("blob");
 }
 async function makeDocx(docs,docTitle){
-  await loadScript(JSZIP);const zip=new window.JSZip();
+  await loadScript(JSZIP);const zip=new window.JSZip(),pics=await exportPictures(docs),media=[];
   const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"");
   const links=[],nums=[];
   const plain=(text,o)=>{o=o||{};return `<w:p><w:pPr><w:spacing w:after="${o.after==null?120:o.after}"/></w:pPr><w:r><w:rPr>${o.b?"<w:b/>":""}${o.color?`<w:color w:val="${o.color}"/>`:""}<w:sz w:val="${o.sz||23}"/></w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;};
@@ -337,6 +341,9 @@ async function makeDocx(docs,docTitle){
   const blocks=list=>{let out="",olNum=0;
     list.forEach(b=>{
       if(b.kind!=="li")olNum=0;
+      if(b.kind==="pic"){const pc=pics.get(b.id);if(!pc){out+=`<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>[Picture not available]</w:t></w:r></w:p>`;return;}
+        media.push(pc.dataUrl.split(",")[1]);const n=media.length;let cx=Math.min(6000000,pc.w*9525),cy=Math.round(cx*pc.h/pc.w);if(cy>4500000){cy=4500000;cx=Math.round(cy*pc.w/pc.h);}
+        out+=`<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Picture ${n}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${n}" name="image${n}.jpeg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdP${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;return;}
       if(b.kind==="hr"){out+='<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="BFBFBF"/></w:pBdr></w:pPr></w:p>';return;}
       if(b.kind==="table"){const cols=Math.max(...b.rows.map(r=>r.cells.length)),cw=Math.floor(9638/cols);
         out+='<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>'+["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="single" w:sz="4" w:color="A6A6A6"/>`).join("")+'</w:tblBorders></w:tblPr><w:tblGrid>'+`<w:gridCol w:w="${cw}"/>`.repeat(cols)+'</w:tblGrid>'+
@@ -366,11 +373,13 @@ async function makeDocx(docs,docTitle){
     st("ListParagraph","List Paragraph",'<w:spacing w:after="40"/><w:contextualSpacing/>',"")+
     `<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="1565C0"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`;
   const REL="http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-  zip.file("[Content_Types].xml",`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`);
+  zip.file("[Content_Types].xml",`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`);
   zip.file("_rels/.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="word/document.xml"/></Relationships>`);
   zip.file("word/_rels/document.xml.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdS" Type="${REL}/styles" Target="styles.xml"/><Relationship Id="rIdN" Type="${REL}/numbering" Target="numbering.xml"/>`+
-    links.map((u,i)=>`<Relationship Id="rIdL${i+1}" Type="${REL}/hyperlink" Target="${esc(u)}" TargetMode="External"/>`).join("")+`</Relationships>`);
+    links.map((u,i)=>`<Relationship Id="rIdL${i+1}" Type="${REL}/hyperlink" Target="${esc(u)}" TargetMode="External"/>`).join("")+
+    media.map((_,i)=>`<Relationship Id="rIdP${i+1}" Type="${REL}/image" Target="media/image${i+1}.jpeg"/>`).join("")+`</Relationships>`);
+  media.forEach((b64,i)=>zip.file(`word/media/image${i+1}.jpeg`,b64,{base64:true}));
   zip.file("word/styles.xml",styles);zip.file("word/numbering.xml",numbering);
-  zip.file("word/document.xml",`${XML}<w:document ${W} xmlns:r="${REL}"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  zip.file("word/document.xml",`${XML}<w:document ${W} xmlns:r="${REL}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
   return zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
 }

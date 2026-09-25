@@ -25,7 +25,9 @@
    onSnapshot(cb){return listen({kind:"doc",path,cb});}});
  const colRef=path=>({doc:id=>docRef(path+"/"+(id||autoId())),onSnapshot(cb){return listen({kind:"col",path,cb,known:new Map()});},
    async get(){const docs=colDocs(path).map(([id,k])=>({id,ref:docRef(k),data:()=>JSON.parse(JSON.stringify(db[k]))}));return{docs,size:docs.length,forEach:f=>docs.forEach(f)};},
-   where(f,op,v){return{onSnapshot(cb){return listen({kind:"col",path,cb,known:new Map(),where:d=>op==="array-contains"&&Array.isArray(d[f])&&d[f].includes(v)});}};}});
+   where(f,op,v){const w=d=>op==="array-contains"?Array.isArray(d[f])&&d[f].includes(v):op==="=="?d[f]===v:false;
+     return{onSnapshot(cb){return listen({kind:"col",path,cb,known:new Map(),where:w});},
+       async get(){const docs=colDocs(path,w).map(([id,k])=>({id,ref:docRef(k),data:()=>JSON.parse(JSON.stringify(db[k]))}));return{docs,size:docs.length,forEach:f=>docs.forEach(f)};}};}});
  const fs={collection:c=>colRef(c),batch(){const ops=[];return{set(r,d){ops.push(()=>r.set(d));},delete(r){ops.push(()=>r.delete());},async commit(){for(const o of ops)await o();}};},enablePersistence:()=>Promise.resolve(),
    terminate:()=>Promise.resolve(),clearPersistence:()=>Promise.resolve()};
  // Accounts: passwords live in localStorage "mockpw" (like a server); default password is secret123.

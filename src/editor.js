@@ -6,7 +6,7 @@ const HL_COLORS=[["yellow","Yellow"],["green","Green"],["blue","Blue"],["pink","
 const TXT_HEX={red:"C62828",orange:"C2610C",green:"2E7D32",blue:"1565C0",purple:"6A1B9A",grey:"5F6B6A"};
 const BG_HEX={yellow:"FFF3A3",green:"C8F2D0",blue:"CFE3FF",pink:"FFD1E8",orange:"FFE0B8"};
 const SIZE_MUL={small:.85,large:1.3,huge:1.7};
-const RICH_FORMATS=["bold","italic","underline","strike","link","color","background","size","header","list","indent","blockquote","align","divider","table"];
+const RICH_FORMATS=["bold","italic","underline","strike","link","color","background","size","header","list","indent","blockquote","align","divider","table","pic","file"];
 const NOTE_MAX=800000; // Firestore's limit per document is 1 MiB
 
 function loadCss(href){return scripts[href]||(scripts[href]=new Promise((res,rej)=>{const l=h("link",{rel:"stylesheet",href});l.onload=res;l.onerror=()=>{delete scripts[href];l.remove();rej(new Error("Couldn't load the editor styles."));};document.head.append(l);}));}
@@ -19,6 +19,20 @@ function setupQuill(){
     "formats/size":cls("size","ql-size",Object.keys(SIZE_MUL),P.Scope.INLINE),"formats/align":cls("align","ql-align",["center","right","justify"],P.Scope.BLOCK)},true);
   const Embed=Q.import("blots/block/embed");
   class Divider extends Embed{}Divider.blotName="divider";Divider.tagName="hr";Q.register(Divider,true);
+  // A picture from the note's attachments (files.js), on its own line.
+  class Pic extends Embed{
+    static create(v){const n=super.create();const id=okFileId(v&&v.id)?v.id:"";n.setAttribute("data-id",id);n.setAttribute("contenteditable","false");
+      const img=h("img",{alt:"Picture",draggable:"false"});n.append(img);
+      loadAttachment(id).then(a=>{img.src=a.url;img.alt=a.meta.name||"Picture";}).catch(()=>{n.classList.add("missing");img.remove();n.append(h("span",{text:"🖼️ Picture not available offline yet"}));});return n;}
+    static value(n){return{id:n.getAttribute("data-id")};}}
+  Pic.blotName="pic";Pic.tagName="figure";Pic.className="npic";Q.register(Pic,true);
+  // A file chip: "📎 name · size", inline.
+  const Inline=Q.import("blots/embed");
+  class FileChip extends Inline{
+    static create(v){const n=super.create();v=v||{};n.setAttribute("data-id",okFileId(v.id)?v.id:"");n.setAttribute("data-name",String(v.name||"file").slice(0,200));n.setAttribute("data-size",String(Number(v.size)||0));
+      n.textContent="📎 "+String(v.name||"file").slice(0,200)+(v.size?" · "+fmtSize(Number(v.size)):"");return n;}
+    static value(n){return{id:n.getAttribute("data-id"),name:n.getAttribute("data-name"),size:Number(n.getAttribute("data-size"))||0};}}
+  FileChip.blotName="file";FileChip.tagName="span";FileChip.className="nfile";Q.register(FileChip,true);
   Q.import("formats/link").PROTOCOL_WHITELIST=["http","https","mailto"];
   return Q;
 }
@@ -37,7 +51,11 @@ function validateDoc(doc){
   if(!doc||!Array.isArray(doc.ops))return null;const ops=[];
   for(const op of doc.ops.slice(0,200000)){
     if(!op||typeof op!=="object")continue;let ins=op.insert;
-    if(typeof ins==="string"){if(!ins)continue;}else if(ins&&typeof ins==="object"&&ins.divider===true)ins={divider:true};else continue;
+    if(typeof ins==="string"){if(!ins)continue;}
+    else if(ins&&typeof ins==="object"&&ins.divider===true)ins={divider:true};
+    else if(ins&&typeof ins==="object"&&ins.pic&&okFileId(ins.pic.id))ins={pic:{id:ins.pic.id}};
+    else if(ins&&typeof ins==="object"&&ins.file&&okFileId(ins.file.id))ins={file:{id:ins.file.id,name:String(ins.file.name||"file").slice(0,200),size:Math.max(0,Number(ins.file.size)||0)}};
+    else continue;
     const rules=typeof ins==="string"&&/^\n+$/.test(ins)?LINE_RULES:typeof ins==="string"?INLINE_RULES:{};
     const attrs={},a=op.attributes&&typeof op.attributes==="object"?op.attributes:{};
     for(const k of Object.keys(a))if(rules[k]&&rules[k](a[k]))attrs[k]=k==="link"?safeUrl(a[k]):a[k];
@@ -61,7 +79,8 @@ function docToBlocks(doc){
       else blocks.push({kind:"table",rows:[{id:a.table,cells:[line]}]});return;}
     blocks.push({kind:a.header?"h"+a.header:a.list?"li":a.blockquote?"quote":"p",list:a.list||"",indent:a.indent||0,align:a.align||"",runs:line});};
   for(const op of doc.ops){
-    if(typeof op.insert!=="string"){if(runs.length)endLine();blocks.push({kind:"hr"});continue;}
+    if(op.insert&&op.insert.file){const f=op.insert.file;runs.push({text:"📎 "+f.name+(f.size?" ("+fmtSize(f.size)+")":""),file:f.id});continue;}
+    if(typeof op.insert!=="string"){if(runs.length)endLine();blocks.push(op.insert.pic?{kind:"pic",id:op.insert.pic.id}:{kind:"hr"});continue;}
     const a=op.attributes||{},parts=op.insert.split("\n");
     parts.forEach((t,i)=>{if(t)runs.push({text:t,b:!!a.bold,i:!!a.italic,u:!!a.underline,s:!!a.strike,color:a.color||"",bg:a.background||"",size:a.size||"",link:a.link||""});if(i<parts.length-1)endLine(a);});
   }
@@ -72,11 +91,13 @@ function docToBlocks(doc){
 function listNumbers(blocks){const nums=[];let c=[];blocks.forEach((b,i)=>{if(b.kind!=="li"){c=[];return;}c.length=b.indent+1;if(b.list==="ordered"){c[b.indent]=(c[b.indent]||0)+1;nums[i]=c[b.indent];}else c[b.indent]=0;});return nums;}
 function renderDocReadOnly(doc){
   const box=h("div",{class:"rich-ro"}),blocks=docToBlocks(doc),nums=listNumbers(blocks);
-  const runEl=r=>{let el=r.link&&safeUrl(r.link)?h("a",{href:safeUrl(r.link),target:"_blank",rel:"noopener noreferrer"},r.text):h("span",{text:r.text});
+  const runEl=r=>{if(r.file)return h("button",{type:"button",class:"nfile",text:r.text,onclick:()=>openAttachment(r.file)});let el=r.link&&safeUrl(r.link)?h("a",{href:safeUrl(r.link),target:"_blank",rel:"noopener noreferrer"},r.text):h("span",{text:r.text});
     el.className=[r.color?"ql-color-"+r.color:"",r.bg?"ql-bg-"+r.bg:"",r.size?"ql-size-"+r.size:""].filter(Boolean).join(" ");
     el.style.cssText=(r.b?"font-weight:700;":"")+(r.i?"font-style:italic;":"")+(r.u||r.s?"text-decoration:"+(r.u?"underline ":"")+(r.s?"line-through":"")+";":"");return el;};
   blocks.forEach((b,i)=>{
     if(b.kind==="hr"){box.append(h("hr"));return;}
+    if(b.kind==="pic"){const f=h("figure",{class:"npic"});const img=h("img",{alt:"Picture"});f.append(img);f.onclick=()=>openAttachment(b.id);
+      loadAttachment(b.id).then(a=>{img.src=a.url;}).catch(()=>{img.remove();f.append(h("span",{text:"🖼️ Picture not available offline yet"}));});box.append(f);return;}
     if(b.kind==="table"){box.append(h("table",null,h("tbody",null,b.rows.map(r=>h("tr",null,r.cells.map(c=>h("td",null,c.map(runEl))))))));return;}
     const tag=b.kind==="quote"?"blockquote":/^h\d$/.test(b.kind)?b.kind:"p";
     const mark=b.kind==="li"?(b.list==="bullet"?"• ":b.list==="ordered"?nums[i]+". ":b.list==="checked"?"☑ ":"☐ "):"";
@@ -86,18 +107,25 @@ function renderDocReadOnly(doc){
 }
 
 /* ---- the editor ---- */
-function mountEditor(Q,host,start,ph,changed){
+function mountEditor(Q,host,start,ph,changed,noteId){
   host.textContent="";
   const area=h("div",{class:"rich-area"}),bar=h("div",{class:"rtool",role:"toolbar","aria-label":"Formatting"}),linkBar=h("div",{class:"rlink",hidden:true});
   const wrap=h("div",{class:"rtool-wrap"},bar,linkBar);host.append(wrap,area);
-  const q=new Q(area,{formats:RICH_FORMATS,placeholder:ph,modules:{table:true,history:{userOnly:true},keyboard:{bindings:richBindings()}}});
+  const q=new Q(area,{formats:RICH_FORMATS,placeholder:ph,modules:{table:true,history:{userOnly:true},uploader:{handler(){}},keyboard:{bindings:richBindings()}}});
   q.root.classList.add("note-body");q.root.setAttribute("aria-label","Text");
   q.setContents(start,"silent");q.history.clear();
-  const sync=buildToolbar(q,wrap,bar,linkBar);
+  const sync=buildToolbar(q,wrap,bar,linkBar,noteId);
   q.on("editor-change",()=>sync());
   let fixing=false;
   q.on("text-change",(d,o,src)=>{if(src==="user"&&!fixing){fixing=true;try{autoFormat(q,d);}finally{fixing=false;}}changed();});
   q.root.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&(e.ctrlKey||e.metaKey)){e.preventDefault();window.open(a.href,"_blank","noopener");}});
+  q.root.addEventListener("click",e=>{const f=e.target.closest(".npic,.nfile");if(f&&f.dataset.id)openAttachment(f.dataset.id,f.dataset.name);});
+  // Pasted or dropped files become attachments (Quill's own image uploader is switched off above).
+  const grab=(e,list)=>{const files=Array.from(list||[]).filter(f=>f&&f.size>=0&&f.name!==undefined);if(!files.length)return;e.preventDefault();e.stopPropagation();
+    let at=null;if(e.type==="drop"&&document.caretRangeFromPoint){const r=document.caretRangeFromPoint(e.clientX,e.clientY);const b=r&&Q.find(r.startContainer,true);if(b)at=q.getIndex(b)+r.startOffset;}
+    attachFiles(q,files,noteId,at);};
+  q.root.addEventListener("paste",e=>grab(e,e.clipboardData&&e.clipboardData.files),true);
+  q.root.addEventListener("drop",e=>grab(e,e.dataTransfer&&e.dataTransfer.files),true);
   keepToolbarAboveKeyboard(q,wrap);
   return q;
 }
@@ -151,7 +179,7 @@ function richLink(q){
   inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();save.click();}});
   setTimeout(()=>inp.focus(),60);
 }
-function buildToolbar(q,wrap,bar,linkBar){
+function buildToolbar(q,wrap,bar,linkBar,noteId){
   const keep=e=>e.preventDefault(); // keep the cursor in the text while using the toolbar
   const fmt=()=>{const r=q.getSelection();return r?q.getFormat(r):{};};
   let pop=null;const closePop=()=>{if(pop){pop.remove();pop=null;}};
@@ -178,6 +206,8 @@ function buildToolbar(q,wrap,bar,linkBar){
   const quote=btn("❝","Quote",()=>toggle("blockquote"));
   menu("≡","Alignment",()=>[["","Left"],["center","Centre"],["right","Right"],["justify","Justify"]].map(([v,l])=>item(l,()=>q.format("align",v||false,"user"),{"aria-pressed":String((fmt().align||"")===v)})));
   menu("Aa","Text size",()=>[["small","Small"],["","Normal"],["large","Large"],["huge","Huge"]].map(([v,l])=>item(l,()=>q.format("size",v||false,"user"),{"aria-pressed":String((fmt().size||"")===v),class:v?"ql-size-"+v:""})));sep();
+  menu("📎","Add a picture or file",()=>canAttach()?[item("🖼️ Picture",()=>pickFiles("image/*",f=>attachFiles(q,f,noteId))),item("📄 File (up to 5 MB)",()=>pickFiles("",f=>attachFiles(q,f,noteId)))]
+    :[h("p",{class:"small muted",style:"margin:6px 8px;max-width:220px",text:"Sign in to add pictures and files. They're kept in your account."})]);
   btn("🔗","Link (Ctrl+K)",()=>richLink(q));
   btn("―","Divider line",()=>{const r=q.getSelection(true),[line,off]=q.getLine(r.index);const at=r.index-off+(line?line.length():1);q.insertEmbed(at,"divider",true,"user");q.setSelection(Math.min(at+1,q.getLength()-1),0,"user");});
   const tbl=()=>q.getModule("table");

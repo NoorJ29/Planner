@@ -35,6 +35,7 @@ Each test prints what it checked and ends with `ERRORS: []` when nothing went wr
 - `test_folders.py`: note folders and subfolders: create, open, breadcrumbs, include subfolders, move notes and folders, delete (keep or everything) with Undo, laptop tree, search, backup, sync
 - `test_menu_layout.py`: choosing and ordering pages in the phone bottom bar and laptop sidebar, number keys, syncing the layout to another device
 - `test_rich_notes.py`: note/journal formatting: toolbar, typing shortcuts, checkboxes, tables, links, colours in light and dark, paste and tampered-data safety, Word/PDF export, syncing, read-only offline view, size limit
+- `test_attachments.py`: pictures and files in notes: resizing, splitting into parts, 5 MB limit, safe opening (HTML/SVG download only), paste, cleanup, other device, Word/PDF pictures, account deletion (needs `pip install pillow`)
 - `test_profile.py`: profile button and page: stats, rename (also on shared lists), change password, sign out, delete account
 - `test_update_bar.py`: the "new version is ready" bar and Settings → Check for updates (serves its own copy of the app on port 8766)
 

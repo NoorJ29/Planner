@@ -331,7 +331,9 @@ function renderProfile(main){
   const stat=(n,l)=>h("div",{class:"stat"},h("b",{text:String(n)}),h("span",{text:l}));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Your stats"}),created?h("span",{class:"n",text:"Member since "+created.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}):null),
     h("div",{class:"card stats pstats"},stat(vals("tasks").filter(t=>t.done).length,"Tasks done"),stat(vals("habits").filter(x=>!x.archived).length,"Habits"),stat(best,"Best streak"),
-      stat(notes.filter(n=>n.type!=="journal").length,"Notes"),stat(notes.filter(n=>n.type==="journal").length,"Journal entries"),stat(focusMin?hmins(focusMin):"0m","Focus time"))));
+      stat(notes.filter(n=>n.type!=="journal").length,"Notes"),stat(notes.filter(n=>n.type==="journal").length,"Journal entries"),stat(focusMin?hmins(focusMin):"0m","Focus time")),
+    h("p",{class:"small muted pusage",style:"margin:10px 2px 0",text:"Pictures and files: checking…"})));
+  filesUsage().then(u=>{const el=main.querySelector(".pusage");if(el&&u)el.textContent="Pictures and files: "+u.count+" ("+fmtSize(u.size)+" of about 1 GB free space)";}).catch(()=>{const el=main.querySelector(".pusage");if(el)el.remove();});
   // name
   const nm=h("input",{class:"inp",value:u.displayName||"",placeholder:me.name,maxlength:"40",autocomplete:"name","aria-label":"Your name"});
   const saveN=h("button",{class:"btn primary",text:"Save"});
@@ -386,6 +388,8 @@ async function deleteAccount(pw){
     else await ref.update({members:FV.arrayRemove(uid),["memberInfo."+uid]:FV.delete()});}
   for(const c of COLS){const snap=await base.collection(c).get();const refs=snap.docs.map(d=>d.ref);
     for(let i=0;i<refs.length;i+=400){const b=fbDb.batch();refs.slice(i,i+400).forEach(r=>b.delete(r));await b.commit();}}
+  const files=await base.collection("files").get();
+  for(const d of files.docs){const m=d.data(),b=fbDb.batch();for(let i=0;i<(m.parts||1);i++)b.delete(d.ref.collection("parts").doc(String(i)));b.delete(d.ref);await b.commit();}
   await base.delete();
   try{await u.delete();}catch(e){e.stage="login";throw e;}
   try{Object.keys(localStorage).filter(k=>k.startsWith("planner.")).forEach(k=>localStorage.removeItem(k));}catch(e){}

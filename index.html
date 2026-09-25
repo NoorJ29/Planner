@@ -701,6 +701,14 @@ body.desk .rtool{flex-wrap:wrap;overflow:visible}
 .rich-ro .romark{color:var(--accent);margin-left:-1.3em;display:inline-block;width:1.3em}
 .rich-ro .ql-align-center{text-align:center}.rich-ro .ql-align-right{text-align:right}.rich-ro .ql-align-justify{text-align:justify}
 .rbanner{background:color-mix(in srgb,var(--sun) 20%,var(--surface));border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+/* pictures and files in notes */
+.npic{margin:10px 0;cursor:zoom-in;display:block}
+.npic img{display:block;max-width:100%;max-height:60vh;border-radius:12px;border:1px solid var(--line);background:var(--sunken)}
+.npic.missing,.npic span{color:var(--muted);font-size:14px}
+.nfile{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;margin:0 2px;border-radius:999px;border:1px solid var(--line);background:var(--sunken);color:var(--ink);font-size:.9em;cursor:pointer;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:baseline}
+button.nfile{font:inherit;font-size:.9em}
+.nfile:hover{border-color:var(--accent)}
+.picview{display:block;max-width:100%;max-height:75vh;margin:0 auto 12px;border-radius:12px;object-fit:contain}
 
 </style>
 </head>
@@ -1495,7 +1503,7 @@ function deleteFolder(f){
 }
 
 // The note and journal editor: a full-screen sheet with the rich text editor (see editor.js).
-function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn}){
+function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,exportFn,deleteFn,noteId}){
   const status=h("span",{class:"saved",text:""});
   const title=titlePh!=null?h("input",{class:"note-title",value:titleVal||"",placeholder:titlePh,"aria-label":"Title"}):null;
   const host=h("div",{class:"rich-host"},h("div",{class:"small muted",style:"padding:14px 2px",text:"Opening the editor…"}));
@@ -1510,10 +1518,10 @@ function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,e
   let deleted=false;
   const tools=h("div",{class:"row"},exportFn?h("button",{class:"chip",text:"Export",onclick:()=>{saveNow.flush();exportFn();}}):null,deleteFn?h("button",{class:"chip",text:"Delete",onclick:()=>{saveNow.flush();saveNow.cancel();deleted=true;close();deleteFn();}}):null);
   const close=openSheet([h("div",{class:"shead"},h("div",{style:"min-width:0"},head,status),done),extra||null,title,host,h("div",{style:"padding-top:10px"},tools)],
-    {full:true,onClose:()=>{closed=true;if(deleted)return;saveNow.flush();onClose&&onClose();}});
+    {full:true,onClose:()=>{closed=true;if(deleted)return;saveNow.flush();onClose&&onClose();const id=noteId&&noteId(true);if(id)setTimeout(()=>sweepFiles(id),1500);}});
   done.onclick=close;
   const start=noteDelta(note);
-  const ready=loadEditor().then(Q=>{if(!closed)q=mountEditor(Q,host,start,bodyPh,changed);}).catch(e=>{console.error(e);if(closed)return;host.textContent="";
+  const ready=loadEditor().then(Q=>{if(!closed)q=mountEditor(Q,host,start,bodyPh,changed,()=>noteId());}).catch(e=>{console.error(e);if(closed)return;host.textContent="";
     host.append(h("div",{class:"rbanner",role:"status",text:"Formatting tools need the internet once. You can read this note now; editing will work when you're back online."}),renderDocReadOnly(start));});
   return{title,close,changed,ready,snapshot,focus:()=>ready.then(()=>{if(q)q.focus();})};
 }
@@ -1526,10 +1534,11 @@ function openNote(n){
   const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",note:cur,bodyPh:"Start writing…",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:n?"Note":"New note"}),
     extra:h("div",{class:"row",style:"margin-bottom:6px"},pin,fchip),
-    onChange:({title,body,doc})=>{if(!cur){if(!title.trim()&&!(body||"").trim())return;cur=newNote({folderId});}cur.title=title;if(doc){cur.body=body;cur.doc=doc;}cur.updatedAt=Date.now();Store.put("notes",cur);},
-    onClose:()=>{if(cur&&!cur.title.trim()&&!(cur.body||"").trim())Store.del("notes",cur.id);},
+    onChange:({title,body,doc})=>{if(!cur){if(!title.trim()&&!(body||"").trim()&&!noteFileIds({doc}).size)return;cur=newNote({folderId});}cur.title=title;if(doc){cur.body=body;cur.doc=doc;}cur.updatedAt=Date.now();Store.put("notes",cur);},
+    onClose:()=>{if(cur&&!cur.title.trim()&&!(cur.body||"").trim()&&!noteFileIds(cur).size)Store.del("notes",cur.id);},
+    noteId:peek=>{if(!cur&&!peek){cur=newNote({folderId,title:ed.title.value});Store.put("notes",cur);}return cur&&cur.id;},
     exportFn:()=>{if(cur)openExport([noteDoc(cur)],cur.title||"Note",(cur.title||"note"));else toast("Write something first.");},
-    deleteFn:()=>{if(cur&&D.notes.has(cur.id)){const prev=snap("notes",cur.id);Store.del("notes",cur.id);undoable("Note deleted",[["notes",prev,cur.id]]);}}});
+    deleteFn:()=>{if(cur&&D.notes.has(cur.id)){const prev=snap("notes",cur.id);Store.del("notes",cur.id);undoable("Note deleted",[["notes",prev,cur.id]]);setTimeout(()=>{if(!D.notes.has(prev.id))sweepFiles(prev.id);},15000);}}});
   pin.onclick=()=>{if(!cur){toast("Write something first.");return;}cur.pinned=!cur.pinned;pin.setAttribute("aria-pressed",String(cur.pinned));Store.put("notes",Object.assign(cur,{updatedAt:Date.now()}));};
   if(!n)ed.focus();
 }
@@ -1541,10 +1550,11 @@ function openJournal(k){
   const ed=editorSheet({note:cur,bodyPh:"What happened today? What went well? What are you grateful for?",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:k===todayKey()?"Today":fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),
     extra:h("div",{style:"margin:4px 0 10px"},moods),
-    onChange:({body,doc})=>{if(!doc)return;if(!cur){if(!body.trim())return;cur=newNote({id,type:"journal",date:k});}cur.body=body;cur.doc=doc;cur.updatedAt=Date.now();Store.put("notes",cur);},
-    onClose:()=>{if(cur&&!(cur.body||"").trim()&&!cur.mood)Store.del("notes",id);},
+    onChange:({body,doc})=>{if(!doc)return;if(!cur){if(!body.trim()&&!noteFileIds({doc}).size)return;cur=newNote({id,type:"journal",date:k});}cur.body=body;cur.doc=doc;cur.updatedAt=Date.now();Store.put("notes",cur);},
+    onClose:()=>{if(cur&&!(cur.body||"").trim()&&!cur.mood&&!noteFileIds(cur).size)Store.del("notes",id);},
+    noteId:()=>id,
     exportFn:()=>{if(cur)openExport([journalDoc(cur)],"Journal: "+longDate(k),"journal-"+k);else toast("Write something first.");},
-    deleteFn:()=>{if(D.notes.has(id)){const prev=snap("notes",id);Store.del("notes",id);undoable("Entry deleted",[["notes",prev,id]]);}}});
+    deleteFn:()=>{if(D.notes.has(id)){const prev=snap("notes",id);Store.del("notes",id);undoable("Entry deleted",[["notes",prev,id]]);setTimeout(()=>{if(!D.notes.has(id))sweepFiles(id);},15000);}}});
   drawM();
   if(!cur)ed.focus();
 }
@@ -1572,7 +1582,7 @@ function pdfSafe(s){return String(s).replace(/[\u2018\u2019]/g,"'").replace(/[\u
 const docBlocks=e=>docToBlocks(validateDoc(e.doc)||deltaFromText(e.body));
 const hexRgb=x=>[parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)];
 async function makePdf(docs,docTitle){
-  await loadScript(JSPDF);const {jsPDF}=window.jspdf;
+  await loadScript(JSPDF);const {jsPDF}=window.jspdf,pics=await exportPictures(docs);
   const pdf=new jsPDF({unit:"pt",format:"a4"});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight(),M=56,INK="16302B",BODY="1E1E1E";let y=M;
   const ensure=hh=>{if(y+hh>H-M){pdf.addPage();y=M;}};
   pdf.setTextColor(...hexRgb(INK));pdf.setFont("helvetica","bold");pdf.setFontSize(22);pdf.text(pdfSafe(docTitle),M,y+6);y+=34;
@@ -1601,6 +1611,8 @@ async function makePdf(docs,docTitle){
   const blocks=list=>{const nums=listNumbers(list),X=M,MW=W-2*M,sz=11.5;
     list.forEach((b,i)=>{
       if(b.kind==="hr"){y+=6;ensure(12);pdf.setDrawColor(190);pdf.setLineWidth(1);pdf.line(X,y,X+MW,y);y+=12;return;}
+      if(b.kind==="pic"){const pc=pics.get(b.id);if(!pc){para([{text:"[Picture not available]",i:true}],X,MW,sz,false,"","8A8A8A",0);return;}
+        let w=Math.min(MW,pc.w*.75),hh=w*pc.h/pc.w;if(hh>360){hh=360;w=hh*pc.w/pc.h;}ensure(hh+10);pdf.addImage(pc.dataUrl,"JPEG",X,y+4,w,hh);y+=hh+10;return;}
       if(b.kind==="table"){const cols=Math.max(...b.rows.map(r=>r.cells.length)),cw=MW/cols;y+=4;
         b.rows.forEach(r=>{const cells=r.cells.map(c=>layout(c,sz-1,false,cw-12));const rh=Math.max(...cells.map(ls=>ls.reduce((a,l)=>a+lineH(l,sz-1),0)||(sz-1)*1.42))+10;ensure(rh);
           pdf.setDrawColor(170);pdf.setLineWidth(.6);for(let c=0;c<cols;c++)pdf.rect(X+c*cw,y,cw,rh);
@@ -1623,7 +1635,7 @@ async function makePdf(docs,docTitle){
   return pdf.output("blob");
 }
 async function makeDocx(docs,docTitle){
-  await loadScript(JSZIP);const zip=new window.JSZip();
+  await loadScript(JSZIP);const zip=new window.JSZip(),pics=await exportPictures(docs),media=[];
   const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"");
   const links=[],nums=[];
   const plain=(text,o)=>{o=o||{};return `<w:p><w:pPr><w:spacing w:after="${o.after==null?120:o.after}"/></w:pPr><w:r><w:rPr>${o.b?"<w:b/>":""}${o.color?`<w:color w:val="${o.color}"/>`:""}<w:sz w:val="${o.sz||23}"/></w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;};
@@ -1639,6 +1651,9 @@ async function makeDocx(docs,docTitle){
   const blocks=list=>{let out="",olNum=0;
     list.forEach(b=>{
       if(b.kind!=="li")olNum=0;
+      if(b.kind==="pic"){const pc=pics.get(b.id);if(!pc){out+=`<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>[Picture not available]</w:t></w:r></w:p>`;return;}
+        media.push(pc.dataUrl.split(",")[1]);const n=media.length;let cx=Math.min(6000000,pc.w*9525),cy=Math.round(cx*pc.h/pc.w);if(cy>4500000){cy=4500000;cx=Math.round(cy*pc.w/pc.h);}
+        out+=`<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Picture ${n}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${n}" name="image${n}.jpeg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdP${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;return;}
       if(b.kind==="hr"){out+='<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="BFBFBF"/></w:pBdr></w:pPr></w:p>';return;}
       if(b.kind==="table"){const cols=Math.max(...b.rows.map(r=>r.cells.length)),cw=Math.floor(9638/cols);
         out+='<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>'+["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="single" w:sz="4" w:color="A6A6A6"/>`).join("")+'</w:tblBorders></w:tblPr><w:tblGrid>'+`<w:gridCol w:w="${cw}"/>`.repeat(cols)+'</w:tblGrid>'+
@@ -1668,12 +1683,14 @@ async function makeDocx(docs,docTitle){
     st("ListParagraph","List Paragraph",'<w:spacing w:after="40"/><w:contextualSpacing/>',"")+
     `<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="1565C0"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`;
   const REL="http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-  zip.file("[Content_Types].xml",`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`);
+  zip.file("[Content_Types].xml",`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`);
   zip.file("_rels/.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="word/document.xml"/></Relationships>`);
   zip.file("word/_rels/document.xml.rels",`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdS" Type="${REL}/styles" Target="styles.xml"/><Relationship Id="rIdN" Type="${REL}/numbering" Target="numbering.xml"/>`+
-    links.map((u,i)=>`<Relationship Id="rIdL${i+1}" Type="${REL}/hyperlink" Target="${esc(u)}" TargetMode="External"/>`).join("")+`</Relationships>`);
+    links.map((u,i)=>`<Relationship Id="rIdL${i+1}" Type="${REL}/hyperlink" Target="${esc(u)}" TargetMode="External"/>`).join("")+
+    media.map((_,i)=>`<Relationship Id="rIdP${i+1}" Type="${REL}/image" Target="media/image${i+1}.jpeg"/>`).join("")+`</Relationships>`);
+  media.forEach((b64,i)=>zip.file(`word/media/image${i+1}.jpeg`,b64,{base64:true}));
   zip.file("word/styles.xml",styles);zip.file("word/numbering.xml",numbering);
-  zip.file("word/document.xml",`${XML}<w:document ${W} xmlns:r="${REL}"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  zip.file("word/document.xml",`${XML}<w:document ${W} xmlns:r="${REL}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
   return zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
 }
 
@@ -1685,7 +1702,7 @@ const HL_COLORS=[["yellow","Yellow"],["green","Green"],["blue","Blue"],["pink","
 const TXT_HEX={red:"C62828",orange:"C2610C",green:"2E7D32",blue:"1565C0",purple:"6A1B9A",grey:"5F6B6A"};
 const BG_HEX={yellow:"FFF3A3",green:"C8F2D0",blue:"CFE3FF",pink:"FFD1E8",orange:"FFE0B8"};
 const SIZE_MUL={small:.85,large:1.3,huge:1.7};
-const RICH_FORMATS=["bold","italic","underline","strike","link","color","background","size","header","list","indent","blockquote","align","divider","table"];
+const RICH_FORMATS=["bold","italic","underline","strike","link","color","background","size","header","list","indent","blockquote","align","divider","table","pic","file"];
 const NOTE_MAX=800000; // Firestore's limit per document is 1 MiB
 
 function loadCss(href){return scripts[href]||(scripts[href]=new Promise((res,rej)=>{const l=h("link",{rel:"stylesheet",href});l.onload=res;l.onerror=()=>{delete scripts[href];l.remove();rej(new Error("Couldn't load the editor styles."));};document.head.append(l);}));}
@@ -1698,6 +1715,20 @@ function setupQuill(){
     "formats/size":cls("size","ql-size",Object.keys(SIZE_MUL),P.Scope.INLINE),"formats/align":cls("align","ql-align",["center","right","justify"],P.Scope.BLOCK)},true);
   const Embed=Q.import("blots/block/embed");
   class Divider extends Embed{}Divider.blotName="divider";Divider.tagName="hr";Q.register(Divider,true);
+  // A picture from the note's attachments (files.js), on its own line.
+  class Pic extends Embed{
+    static create(v){const n=super.create();const id=okFileId(v&&v.id)?v.id:"";n.setAttribute("data-id",id);n.setAttribute("contenteditable","false");
+      const img=h("img",{alt:"Picture",draggable:"false"});n.append(img);
+      loadAttachment(id).then(a=>{img.src=a.url;img.alt=a.meta.name||"Picture";}).catch(()=>{n.classList.add("missing");img.remove();n.append(h("span",{text:"🖼️ Picture not available offline yet"}));});return n;}
+    static value(n){return{id:n.getAttribute("data-id")};}}
+  Pic.blotName="pic";Pic.tagName="figure";Pic.className="npic";Q.register(Pic,true);
+  // A file chip: "📎 name · size", inline.
+  const Inline=Q.import("blots/embed");
+  class FileChip extends Inline{
+    static create(v){const n=super.create();v=v||{};n.setAttribute("data-id",okFileId(v.id)?v.id:"");n.setAttribute("data-name",String(v.name||"file").slice(0,200));n.setAttribute("data-size",String(Number(v.size)||0));
+      n.textContent="📎 "+String(v.name||"file").slice(0,200)+(v.size?" · "+fmtSize(Number(v.size)):"");return n;}
+    static value(n){return{id:n.getAttribute("data-id"),name:n.getAttribute("data-name"),size:Number(n.getAttribute("data-size"))||0};}}
+  FileChip.blotName="file";FileChip.tagName="span";FileChip.className="nfile";Q.register(FileChip,true);
   Q.import("formats/link").PROTOCOL_WHITELIST=["http","https","mailto"];
   return Q;
 }
@@ -1716,7 +1747,11 @@ function validateDoc(doc){
   if(!doc||!Array.isArray(doc.ops))return null;const ops=[];
   for(const op of doc.ops.slice(0,200000)){
     if(!op||typeof op!=="object")continue;let ins=op.insert;
-    if(typeof ins==="string"){if(!ins)continue;}else if(ins&&typeof ins==="object"&&ins.divider===true)ins={divider:true};else continue;
+    if(typeof ins==="string"){if(!ins)continue;}
+    else if(ins&&typeof ins==="object"&&ins.divider===true)ins={divider:true};
+    else if(ins&&typeof ins==="object"&&ins.pic&&okFileId(ins.pic.id))ins={pic:{id:ins.pic.id}};
+    else if(ins&&typeof ins==="object"&&ins.file&&okFileId(ins.file.id))ins={file:{id:ins.file.id,name:String(ins.file.name||"file").slice(0,200),size:Math.max(0,Number(ins.file.size)||0)}};
+    else continue;
     const rules=typeof ins==="string"&&/^\n+$/.test(ins)?LINE_RULES:typeof ins==="string"?INLINE_RULES:{};
     const attrs={},a=op.attributes&&typeof op.attributes==="object"?op.attributes:{};
     for(const k of Object.keys(a))if(rules[k]&&rules[k](a[k]))attrs[k]=k==="link"?safeUrl(a[k]):a[k];
@@ -1740,7 +1775,8 @@ function docToBlocks(doc){
       else blocks.push({kind:"table",rows:[{id:a.table,cells:[line]}]});return;}
     blocks.push({kind:a.header?"h"+a.header:a.list?"li":a.blockquote?"quote":"p",list:a.list||"",indent:a.indent||0,align:a.align||"",runs:line});};
   for(const op of doc.ops){
-    if(typeof op.insert!=="string"){if(runs.length)endLine();blocks.push({kind:"hr"});continue;}
+    if(op.insert&&op.insert.file){const f=op.insert.file;runs.push({text:"📎 "+f.name+(f.size?" ("+fmtSize(f.size)+")":""),file:f.id});continue;}
+    if(typeof op.insert!=="string"){if(runs.length)endLine();blocks.push(op.insert.pic?{kind:"pic",id:op.insert.pic.id}:{kind:"hr"});continue;}
     const a=op.attributes||{},parts=op.insert.split("\n");
     parts.forEach((t,i)=>{if(t)runs.push({text:t,b:!!a.bold,i:!!a.italic,u:!!a.underline,s:!!a.strike,color:a.color||"",bg:a.background||"",size:a.size||"",link:a.link||""});if(i<parts.length-1)endLine(a);});
   }
@@ -1751,11 +1787,13 @@ function docToBlocks(doc){
 function listNumbers(blocks){const nums=[];let c=[];blocks.forEach((b,i)=>{if(b.kind!=="li"){c=[];return;}c.length=b.indent+1;if(b.list==="ordered"){c[b.indent]=(c[b.indent]||0)+1;nums[i]=c[b.indent];}else c[b.indent]=0;});return nums;}
 function renderDocReadOnly(doc){
   const box=h("div",{class:"rich-ro"}),blocks=docToBlocks(doc),nums=listNumbers(blocks);
-  const runEl=r=>{let el=r.link&&safeUrl(r.link)?h("a",{href:safeUrl(r.link),target:"_blank",rel:"noopener noreferrer"},r.text):h("span",{text:r.text});
+  const runEl=r=>{if(r.file)return h("button",{type:"button",class:"nfile",text:r.text,onclick:()=>openAttachment(r.file)});let el=r.link&&safeUrl(r.link)?h("a",{href:safeUrl(r.link),target:"_blank",rel:"noopener noreferrer"},r.text):h("span",{text:r.text});
     el.className=[r.color?"ql-color-"+r.color:"",r.bg?"ql-bg-"+r.bg:"",r.size?"ql-size-"+r.size:""].filter(Boolean).join(" ");
     el.style.cssText=(r.b?"font-weight:700;":"")+(r.i?"font-style:italic;":"")+(r.u||r.s?"text-decoration:"+(r.u?"underline ":"")+(r.s?"line-through":"")+";":"");return el;};
   blocks.forEach((b,i)=>{
     if(b.kind==="hr"){box.append(h("hr"));return;}
+    if(b.kind==="pic"){const f=h("figure",{class:"npic"});const img=h("img",{alt:"Picture"});f.append(img);f.onclick=()=>openAttachment(b.id);
+      loadAttachment(b.id).then(a=>{img.src=a.url;}).catch(()=>{img.remove();f.append(h("span",{text:"🖼️ Picture not available offline yet"}));});box.append(f);return;}
     if(b.kind==="table"){box.append(h("table",null,h("tbody",null,b.rows.map(r=>h("tr",null,r.cells.map(c=>h("td",null,c.map(runEl))))))));return;}
     const tag=b.kind==="quote"?"blockquote":/^h\d$/.test(b.kind)?b.kind:"p";
     const mark=b.kind==="li"?(b.list==="bullet"?"• ":b.list==="ordered"?nums[i]+". ":b.list==="checked"?"☑ ":"☐ "):"";
@@ -1765,18 +1803,25 @@ function renderDocReadOnly(doc){
 }
 
 /* ---- the editor ---- */
-function mountEditor(Q,host,start,ph,changed){
+function mountEditor(Q,host,start,ph,changed,noteId){
   host.textContent="";
   const area=h("div",{class:"rich-area"}),bar=h("div",{class:"rtool",role:"toolbar","aria-label":"Formatting"}),linkBar=h("div",{class:"rlink",hidden:true});
   const wrap=h("div",{class:"rtool-wrap"},bar,linkBar);host.append(wrap,area);
-  const q=new Q(area,{formats:RICH_FORMATS,placeholder:ph,modules:{table:true,history:{userOnly:true},keyboard:{bindings:richBindings()}}});
+  const q=new Q(area,{formats:RICH_FORMATS,placeholder:ph,modules:{table:true,history:{userOnly:true},uploader:{handler(){}},keyboard:{bindings:richBindings()}}});
   q.root.classList.add("note-body");q.root.setAttribute("aria-label","Text");
   q.setContents(start,"silent");q.history.clear();
-  const sync=buildToolbar(q,wrap,bar,linkBar);
+  const sync=buildToolbar(q,wrap,bar,linkBar,noteId);
   q.on("editor-change",()=>sync());
   let fixing=false;
   q.on("text-change",(d,o,src)=>{if(src==="user"&&!fixing){fixing=true;try{autoFormat(q,d);}finally{fixing=false;}}changed();});
   q.root.addEventListener("click",e=>{const a=e.target.closest("a");if(a&&(e.ctrlKey||e.metaKey)){e.preventDefault();window.open(a.href,"_blank","noopener");}});
+  q.root.addEventListener("click",e=>{const f=e.target.closest(".npic,.nfile");if(f&&f.dataset.id)openAttachment(f.dataset.id,f.dataset.name);});
+  // Pasted or dropped files become attachments (Quill's own image uploader is switched off above).
+  const grab=(e,list)=>{const files=Array.from(list||[]).filter(f=>f&&f.size>=0&&f.name!==undefined);if(!files.length)return;e.preventDefault();e.stopPropagation();
+    let at=null;if(e.type==="drop"&&document.caretRangeFromPoint){const r=document.caretRangeFromPoint(e.clientX,e.clientY);const b=r&&Q.find(r.startContainer,true);if(b)at=q.getIndex(b)+r.startOffset;}
+    attachFiles(q,files,noteId,at);};
+  q.root.addEventListener("paste",e=>grab(e,e.clipboardData&&e.clipboardData.files),true);
+  q.root.addEventListener("drop",e=>grab(e,e.dataTransfer&&e.dataTransfer.files),true);
   keepToolbarAboveKeyboard(q,wrap);
   return q;
 }
@@ -1830,7 +1875,7 @@ function richLink(q){
   inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();save.click();}});
   setTimeout(()=>inp.focus(),60);
 }
-function buildToolbar(q,wrap,bar,linkBar){
+function buildToolbar(q,wrap,bar,linkBar,noteId){
   const keep=e=>e.preventDefault(); // keep the cursor in the text while using the toolbar
   const fmt=()=>{const r=q.getSelection();return r?q.getFormat(r):{};};
   let pop=null;const closePop=()=>{if(pop){pop.remove();pop=null;}};
@@ -1857,6 +1902,8 @@ function buildToolbar(q,wrap,bar,linkBar){
   const quote=btn("❝","Quote",()=>toggle("blockquote"));
   menu("≡","Alignment",()=>[["","Left"],["center","Centre"],["right","Right"],["justify","Justify"]].map(([v,l])=>item(l,()=>q.format("align",v||false,"user"),{"aria-pressed":String((fmt().align||"")===v)})));
   menu("Aa","Text size",()=>[["small","Small"],["","Normal"],["large","Large"],["huge","Huge"]].map(([v,l])=>item(l,()=>q.format("size",v||false,"user"),{"aria-pressed":String((fmt().size||"")===v),class:v?"ql-size-"+v:""})));sep();
+  menu("📎","Add a picture or file",()=>canAttach()?[item("🖼️ Picture",()=>pickFiles("image/*",f=>attachFiles(q,f,noteId))),item("📄 File (up to 5 MB)",()=>pickFiles("",f=>attachFiles(q,f,noteId)))]
+    :[h("p",{class:"small muted",style:"margin:6px 8px;max-width:220px",text:"Sign in to add pictures and files. They're kept in your account."})]);
   btn("🔗","Link (Ctrl+K)",()=>richLink(q));
   btn("―","Divider line",()=>{const r=q.getSelection(true),[line,off]=q.getLine(r.index);const at=r.index-off+(line?line.length():1);q.insertEmbed(at,"divider",true,"user");q.setSelection(Math.min(at+1,q.getLength()-1),0,"user");});
   const tbl=()=>q.getModule("table");
@@ -1874,6 +1921,101 @@ function buildToolbar(q,wrap,bar,linkBar){
       u?h("a",{href:u,target:"_blank",rel:"noopener noreferrer",text:"Open ↗"}):null,h("button",{type:"button",class:"linkbtn",text:"Edit",onmousedown:keep,onclick:()=>richLink(q)}));}
   }
   return sync;
+}
+
+/* ================= attachments: pictures and files in notes ================= */
+// Stored in Firestore (Cloud Storage needs the paid Blaze plan). users/{uid}/files/{id} holds the details;
+// users/{uid}/files/{id}/parts/{n} hold the content as base64 pieces under Firestore's 1 MiB document limit.
+const FILE_MAX=5*1024*1024,FILE_PART=700000,PIC_SIDE=1600,PIC_TYPES=["image/jpeg","image/png","image/webp","image/gif"];
+const fileCache=new Map(); // id -> Promise<{blob,url,meta}>
+const okFileId=id=>typeof id==="string"&&/^[a-z0-9]{4,32}$/.test(id);
+const filesCol=()=>Store.base.collection("files");
+const fmtSize=n=>n<1024?n+" B":n<1048576?Math.round(n/1024)+" KB":(n/1048576).toFixed(1)+" MB";
+function canAttach(){return Store.mode==="cloud"&&!!Store.user&&!!Store.base;}
+const blobToB64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]||"");r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});
+function b64ToBlob(b64,type){const bin=atob(b64),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type});}
+function imageOf(blob){return new Promise((res,rej)=>{const url=URL.createObjectURL(blob),img=new Image();img.onload=()=>res({img,url});img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("That picture couldn't be read. Try a JPEG or PNG."));};img.src=url;});}
+// Pictures: longest side 1600 px, JPEG, white behind any transparency. GIFs stay as they are (they may be animated).
+async function shrinkPicture(file){
+  const {img,url}=await imageOf(file);URL.revokeObjectURL(url);
+  if(file.type==="image/gif")return{blob:file,type:"image/gif",w:img.naturalWidth,h:img.naturalHeight};
+  const k=Math.min(1,PIC_SIDE/Math.max(img.naturalWidth,img.naturalHeight)),pw=Math.max(1,Math.round(img.naturalWidth*k)),ph=Math.max(1,Math.round(img.naturalHeight*k));
+  const c=h("canvas",{width:pw,height:ph}),x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,pw,ph);x.drawImage(img,0,0,pw,ph);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.82));return{blob,type:"image/jpeg",w:pw,h:ph};
+}
+async function saveAttachment(file,noteId){
+  if(!canAttach())throw new Error("Sign in to add pictures and files. They're kept in your account.");
+  let blob=file,type=file.type||"application/octet-stream",name=String(file.name||"file").slice(0,200),pw=0,ph=0;
+  const pic=PIC_TYPES.includes(type);
+  if(pic){const r=await shrinkPicture(file);blob=r.blob;type=r.type;pw=r.w;ph=r.h;if(type==="image/jpeg")name=name.replace(/\.[a-z0-9]+$/i,"")+".jpg";}
+  if(blob.size>FILE_MAX)throw new Error("“"+name+"” is "+fmtSize(blob.size)+". Files can be up to 5 MB.");
+  const b64=await blobToB64(blob),parts=Math.max(1,Math.ceil(b64.length/FILE_PART)),id=uid();
+  const meta={name,type,size:blob.size,noteId:noteId||"",parts,w:pw,h:ph,createdAt:Date.now()};
+  const batch=fbDb.batch(),ref=filesCol().doc(id);
+  for(let i=0;i<parts;i++)batch.set(ref.collection("parts").doc(String(i)),{d:b64.slice(i*FILE_PART,(i+1)*FILE_PART)});
+  batch.set(ref,meta);
+  batch.commit().catch(e=>{console.error(e);toast("Couldn't save “"+name+"” yet. It will retry when you're online.");}); // not awaited: works offline
+  fileCache.set(id,Promise.resolve({blob,url:URL.createObjectURL(blob),meta}));
+  return{id,pic,name,size:blob.size};
+}
+function loadAttachment(id){
+  if(!okFileId(id))return Promise.reject(new Error("Unknown file"));
+  if(!fileCache.has(id))fileCache.set(id,(async()=>{
+    if(!canAttach())throw new Error("Sign in to see pictures and files.");
+    const ref=filesCol().doc(id),m=await ref.get();if(!m.exists)throw new Error("This file isn't available any more.");
+    const meta=m.data(),parts=await Promise.all(Array.from({length:meta.parts||1},(_,i)=>ref.collection("parts").doc(String(i)).get()));
+    const blob=b64ToBlob(parts.map(p=>p.exists?p.data().d:"").join(""),PIC_TYPES.includes(meta.type)?meta.type:meta.type==="application/pdf"?"application/pdf":"application/octet-stream");
+    return{blob,url:URL.createObjectURL(blob),meta};})().catch(e=>{fileCache.delete(id);throw e;}));
+  return fileCache.get(id);
+}
+// Only pictures are ever shown and only PDFs are opened; everything else downloads, so a file can't run as a page inside the app.
+async function openAttachment(id,name){
+  try{const a=await loadAttachment(id);
+    if(a.blob.type==="application/pdf"){const w=window.open(a.url,"_blank","noopener");if(!w)download(a.blob,a.meta.name||name||"file.pdf");return;}
+    if(PIC_TYPES.includes(a.blob.type)){openPicture(a);return;}
+    download(new Blob([a.blob],{type:"application/octet-stream"}),a.meta.name||name||"file");}
+  catch(e){toast(e.message||"Couldn't open that file.");}
+}
+function openPicture(a){
+  const close=openSheet([h("div",{class:"shead"},h("b",{text:a.meta.name||"Picture"}),h("button",{class:"x","aria-label":"Close",text:"×",onclick:()=>close()})),
+    h("img",{class:"picview",src:a.url,alt:a.meta.name||"Picture"}),
+    h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Download",onclick:()=>download(a.blob,a.meta.name||"picture.jpg")}))],{full:true});
+}
+// Attach chosen, pasted or dropped files to a note's editor.
+async function attachFiles(q,files,noteId,at){
+  if(!canAttach()){toast("Sign in to add pictures and files. They're kept in your account.");return;}
+  let index=at==null?(q.getSelection(true)||{index:q.getLength()-1}).index:at;
+  for(const f of Array.from(files||[])){
+    try{toast("Adding “"+String(f.name||"file").slice(0,40)+"”…");const r=await saveAttachment(f,noteId());
+      if(r.pic){q.insertEmbed(index,"pic",{id:r.id},"user");index+=1;}
+      else{q.insertEmbed(index,"file",{id:r.id,name:r.name,size:r.size},"user");q.insertText(index+1," ","user");index+=2;}
+      q.setSelection(index,0,"silent");toast("Added “"+r.name+"”");}
+    catch(e){console.error(e);toast(e.message||"Couldn't add that file.");}
+  }
+}
+function pickFiles(accept,fn){const i=h("input",{type:"file",accept,multiple:true,style:"display:none",onchange:()=>{fn(i.files);i.remove();}});document.body.append(i);i.click();}
+// Ids of attachments used by a note.
+function noteFileIds(n){const ids=new Set();const d=n&&n.doc&&Array.isArray(n.doc.ops)?n.doc.ops:[];
+  for(const op of d){const x=op&&op.insert;if(x&&typeof x==="object"){const f=x.pic||x.file;if(f&&okFileId(f.id))ids.add(f.id);}}return ids;}
+async function deleteFileNow(id,meta){const ref=filesCol().doc(id),b=fbDb.batch();for(let i=0;i<(meta.parts||1);i++)b.delete(ref.collection("parts").doc(String(i)));b.delete(ref);await b.commit();fileCache.delete(id);}
+// Remove files whose note is gone or no longer uses them. forNote: only that note's files, with no waiting period.
+async function sweepFiles(forNote){
+  if(!canAttach()||!UI.ready)return 0;let n=0;
+  try{const snap=await(forNote?filesCol().where("noteId","==",forNote):filesCol()).get(),now=Date.now();
+    for(const d of snap.docs){const m=d.data();if(forNote&&m.noteId!==forNote)continue;if(!forNote&&now-(m.createdAt||0)<600000)continue;
+      const note=D.notes.get(m.noteId);if(note&&noteFileIds(note).has(d.id))continue;
+      await deleteFileNow(d.id,m);n++;}}
+  catch(e){console.error(e);}
+  return n;
+}
+async function filesUsage(){if(!canAttach())return null;const s=await filesCol().get();let size=0;s.docs.forEach(d=>size+=Number(d.data().size)||0);return{count:s.size,size};}
+// For export: every picture used by these docs, re-encoded as JPEG. Missing pictures are skipped.
+async function exportPictures(docs){
+  const ids=new Set();docs.forEach(e=>docBlocks(e).forEach(b=>{if(b.kind==="pic")ids.add(b.id);}));const out=new Map();
+  await Promise.all([...ids].map(async id=>{try{const a=await loadAttachment(id),{img,url}=await imageOf(a.blob);
+    const c=h("canvas",{width:img.naturalWidth,height:img.naturalHeight}),x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0);URL.revokeObjectURL(url);
+    out.set(id,{dataUrl:c.toDataURL("image/jpeg",.85),w:c.width,h:c.height});}catch(e){console.error(e);}}));
+  return out;
 }
 
 /* ================= money ================= */
@@ -2209,7 +2351,9 @@ function renderProfile(main){
   const stat=(n,l)=>h("div",{class:"stat"},h("b",{text:String(n)}),h("span",{text:l}));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Your stats"}),created?h("span",{class:"n",text:"Member since "+created.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}):null),
     h("div",{class:"card stats pstats"},stat(vals("tasks").filter(t=>t.done).length,"Tasks done"),stat(vals("habits").filter(x=>!x.archived).length,"Habits"),stat(best,"Best streak"),
-      stat(notes.filter(n=>n.type!=="journal").length,"Notes"),stat(notes.filter(n=>n.type==="journal").length,"Journal entries"),stat(focusMin?hmins(focusMin):"0m","Focus time"))));
+      stat(notes.filter(n=>n.type!=="journal").length,"Notes"),stat(notes.filter(n=>n.type==="journal").length,"Journal entries"),stat(focusMin?hmins(focusMin):"0m","Focus time")),
+    h("p",{class:"small muted pusage",style:"margin:10px 2px 0",text:"Pictures and files: checking…"})));
+  filesUsage().then(u=>{const el=main.querySelector(".pusage");if(el&&u)el.textContent="Pictures and files: "+u.count+" ("+fmtSize(u.size)+" of about 1 GB free space)";}).catch(()=>{const el=main.querySelector(".pusage");if(el)el.remove();});
   // name
   const nm=h("input",{class:"inp",value:u.displayName||"",placeholder:me.name,maxlength:"40",autocomplete:"name","aria-label":"Your name"});
   const saveN=h("button",{class:"btn primary",text:"Save"});
@@ -2264,6 +2408,8 @@ async function deleteAccount(pw){
     else await ref.update({members:FV.arrayRemove(uid),["memberInfo."+uid]:FV.delete()});}
   for(const c of COLS){const snap=await base.collection(c).get();const refs=snap.docs.map(d=>d.ref);
     for(let i=0;i<refs.length;i+=400){const b=fbDb.batch();refs.slice(i,i+400).forEach(r=>b.delete(r));await b.commit();}}
+  const files=await base.collection("files").get();
+  for(const d of files.docs){const m=d.data(),b=fbDb.batch();for(let i=0;i<(m.parts||1);i++)b.delete(d.ref.collection("parts").doc(String(i)));b.delete(d.ref);await b.commit();}
   await base.delete();
   try{await u.delete();}catch(e){e.stage="login";throw e;}
   try{Object.keys(localStorage).filter(k=>k.startsWith("planner.")).forEach(k=>localStorage.removeItem(k));}catch(e){}
@@ -3393,6 +3539,7 @@ applyTheme();
 if(lockCfg())lockNow();
 render();
 Store.init();
+setTimeout(()=>sweepFiles(),20000); // tidy up pictures and files that no note uses any more
 {const pre=()=>{if(navigator.onLine)loadEditor().catch(()=>{});};"requestIdleCallback" in window?requestIdleCallback(pre,{timeout:4000}):setTimeout(pre,4000);} // so notes can be edited offline later
 try{if(sessionStorage.getItem("planner.deleted")){sessionStorage.removeItem("planner.deleted");setTimeout(()=>toast("Your account and its data have been deleted."),300);}}catch(e){}
 refreshFocusUI();{const st=focusState();if(st&&!st.paused&&!st.done&&focusRemaining(st)<=0)finishFocus();else scheduleFocusEnd();}

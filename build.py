@@ -1,6 +1,6 @@
 s=open('src/shell.html').read()
 css=open('src/style.css').read()
-js="\n".join(open('src/'+f).read() for f in ['core.js','plan.js','habits_notes.js','editor.js','more.js','links.js','smart.js','focus.js','extras.js','insights.js','lock.js','shared.js','gcal.js','home.js','main.js'])
+js="\n".join(open('src/'+f).read() for f in ['core.js','plan.js','habits_notes.js','editor.js','files.js','more.js','links.js','smart.js','focus.js','extras.js','insights.js','lock.js','shared.js','gcal.js','home.js','main.js'])
 s=s.replace('/*CSS*/',css).replace('/*JS*/',js)
 open('index.html','w').write(s)
 open('/tmp/a.js','w').write(js)
