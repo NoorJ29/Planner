@@ -66,7 +66,7 @@ async function invite(L){
   const code=makeCode();const url=location.origin+location.pathname+"?join="+code;
   const box=h("div",{class:"codebox",text:"Creating code…"});
   const shareB=h("button",{class:"btn primary wide",text:"Send invite",disabled:true});
-  openSheet([h("h3",{text:"Invite to "+L.name}),h("p",{class:"small muted",style:"margin:0 0 12px",text:"Send this code or link to family. They open Planner, sign in with their own account, and join. Anyone with the code can join, so only share it with people you trust."}),box,h("div",{class:"btnrow"},shareB)]);
+  openSheet([h("h3",{text:"Invite to "+L.name}),h("p",{class:"small muted",style:"margin:0 0 12px",text:"Send this code or link to family. They open Planner, sign in with their own account, and join. Anyone with the code can join, so only share it with people you trust. The code works for 7 days."}),box,h("div",{class:"btnrow"},shareB)]);
   try{await fbDb.collection("invites").doc(code).set({listId:L.id,listName:L.name,createdBy:Store.user.uid,createdAt:Date.now()});
     box.textContent=fmtCode(code);shareB.disabled=false;
     shareB.onclick=()=>shareText("Join my list “"+L.name+"” on Planner","Open this link: "+url+"\nOr in Planner go to More, Shared lists, Join with a code, and enter "+fmtCode(code));}
@@ -83,7 +83,7 @@ function openJoin(pre){
       const {listId,listName}=inv.data();const uid=Store.user.uid;
       await fbDb.collection("shared").doc(listId).update({members:firebase.firestore.FieldValue.arrayUnion(uid),["memberInfo."+uid]:meInfo(),joinCode:code});
       close();UI.tab="more";UI.page="shared";UI.sharedList=listId;render();toast("You joined "+(listName||"the list"));}
-    catch(e){console.error(e);err.textContent=e&&e.code==="permission-denied"?"Couldn't join. The list may have been deleted, or the rules need updating.":"Couldn't join right now. Check your connection.";go.disabled=false;}};
+    catch(e){console.error(e);err.textContent=e&&e.code==="permission-denied"?"That code has expired or the list was deleted. Ask for a new code.":"Couldn't join right now. Check your connection.";go.disabled=false;}};
   setTimeout(()=>inp.focus(),60);
 }
 function leaveShared(L){

@@ -8,7 +8,7 @@ def newpage(b,url="http://localhost:8765/",scheme="light"):
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.on("console",lambda m:m.type=="error" and "gstatic" not in m.text and "fonts" not in m.text and "Failed to load resource" not in m.text and errs.append("console:"+m.text))
     pg.route("**/cdnjs.cloudflare.com/**",lambda r:r.fulfill(body=LIB["jspdf" if "jspdf" in r.request.url else "jszip"],content_type="application/javascript"))
-    pg.route("**/www.gstatic.com/**",lambda r:r.abort())
+    pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript"))
     pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
     pg.goto(url); pg.wait_for_timeout(700)
     return pg

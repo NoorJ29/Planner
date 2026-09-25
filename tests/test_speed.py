@@ -8,7 +8,7 @@ notes=[{"id":f"n{i}","type":"note","title":f"Note {i}","body":"lorem ipsum "*40,
 data=json.dumps({"tasks":tasks,"expenses":exp,"habits":habits,"notes":notes,"settings":{"currency":"USD"}})
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={"width":390,"height":844})
-    pg.route("**/www.gstatic.com/**",lambda r:r.abort())
+    pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript"))
     pg.add_init_script(f"localStorage.setItem('planner.v2',{json.dumps(data)})")
     pg.goto("http://localhost:8765/"); pg.wait_for_timeout(800)
     for tab in ["home","plan","habits","notes","money","plan"]:

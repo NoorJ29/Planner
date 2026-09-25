@@ -30,5 +30,16 @@ Each test prints what it checked and ends with `ERRORS: []` when nothing went wr
 - `test_shared_and_calendar.py`: family shared lists (two users) and Google Calendar (`mockgis.js` simulates Google sign-in)
 - `test_laptop_screens.py`: laptop layout screenshots
 - `test_speed.py`: screen switch times with thousands of items
+- `test_update_bar.py`: the "new version is ready" bar and Settings → Check for updates (serves its own copy of the app on port 8766)
 
-The simulations can't check the real Firebase security rules or real Google servers. Test those by hand after deploying.
+The browser tests use their own test config, so your real `config.js` keys are never used. On Windows, set `PYTHONUTF8=1` (and build with `python3 -X utf8 build.py`).
+
+## Security rules
+`rules/rules.test.mjs` checks `firestore.rules` against Google's Firestore emulator (needs Java 21+ and Node):
+```
+cd tests/rules && npm install
+npx firebase emulators:exec --only firestore --project demo-planner "node --test rules.test.mjs"
+```
+On Windows the emulator can keep running afterwards and hold port 8181; stop the leftover `java` process before the next run.
+
+The simulations can't check real Google servers. Test sign-in and Google Calendar by hand after deploying.

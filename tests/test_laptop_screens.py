@@ -14,7 +14,7 @@ def shots(scheme,prefix,w=1440,h=900):
     with sync_playwright() as p:
         b=p.chromium.launch(); ctx=b.new_context(viewport={"width":w,"height":h},device_scale_factor=1,color_scheme=scheme,service_workers="block"); pg=ctx.new_page()
         errs=[]; pg.on("pageerror",lambda e:errs.append(str(e)))
-        pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
+        pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript")); pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
         pg.add_init_script(f"if(!sessionStorage.getItem('seeded')){{localStorage.setItem('planner.v2',{json.dumps(data)});sessionStorage.setItem('seeded','1');}}")
         pg.goto("http://localhost:8765/"); pg.wait_for_timeout(700)
         pg.screenshot(path=f"tests/out/{prefix}_home.png"); pg.keyboard.press("2"); pg.wait_for_timeout(300)

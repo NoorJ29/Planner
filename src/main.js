@@ -116,6 +116,23 @@ render();
 Store.init();
 refreshFocusUI();{const st=focusState();if(st&&!st.paused&&!st.done&&focusRemaining(st)<=0)finishFocus();else scheduleFocusEnd();}
 $("#focusPill").addEventListener("click",()=>openFocus());
+
+/* app updates: sw.js installs new versions straight away; offer a one-tap reload into them */
+const Updates={reg:null,shown:false,version:""};
+function readVersion(){if(!("caches" in window))return;caches.keys().then(ks=>{const v=(ks.find(k=>/^planner-/.test(k))||"").replace(/^planner-/,"");if(v!==Updates.version){Updates.version=v;if(UI.page==="settings")render();}}).catch(()=>{});}
+function showUpdateBar(){if(Updates.shown)return;Updates.shown=true;
+  document.body.append(h("div",{class:"updbar",role:"status"},h("span",{text:"A new version of Planner is ready."}),h("button",{class:"toast-act",text:"Update now",onclick:()=>location.reload()})));}
+function checkForUpdate(){return Updates.reg?Updates.reg.update():Promise.reject(new Error("no service worker"));}
+async function checkForUpdateNow(btn){
+  btn.disabled=true;
+  try{await checkForUpdate();const r=Updates.reg;if(!r.installing&&!r.waiting&&!Updates.shown)toast("You're up to date.");}
+  catch(e){toast(Updates.reg?"Couldn't check for updates. Are you online?":"Updates aren't available in this browser.");}
+  btn.disabled=false;
+}
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  let firstInstall=!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(firstInstall){firstInstall=false;readVersion();return;}showUpdateBar();});
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").then(r=>{Updates.reg=r;readVersion();}).catch(()=>{}));
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkForUpdate().catch(()=>{});});
+  setInterval(()=>checkForUpdate().catch(()=>{}),30*60*1000);
 }

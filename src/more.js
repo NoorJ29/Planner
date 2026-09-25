@@ -238,7 +238,8 @@ function renderSettings(main){
     row("Task lists",plural(SET.lists.length,"list"),h("button",{class:"chip",text:"Edit",onclick:openLists})),
     row("Home screen widgets","Choose what the Home tab shows",h("button",{class:"chip",text:"Customise",onclick:openDashEditor})),
     row("Bottom bar (phone)",["Home",...navChoice().map(id=>NAV_CHOICES.find(c=>c[0]===id)[1]),"More"].join(", "),h("button",{class:"chip",text:"Change",onclick:openNavEditor})),
-    row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))))));
+    row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))),
+    row("App version",Updates.version||"Checking…",h("button",{class:"chip",text:"Check for updates",onclick:e=>checkForUpdateNow(e.currentTarget)})))));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
     h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Planner icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
     h("p",{style:"margin:0 0 10px",text:"📤 Share to Planner: in any app, tap Share and pick Planner to save text or links as a note."}),

@@ -5,6 +5,7 @@ t=datetime.date.today()
 with sync_playwright() as p:
     b=p.chromium.launch(); ctx=b.new_context(viewport={"width":390,"height":844},device_scale_factor=2,service_workers="block")
     for pat in ["**/www.google.com/**","**/www.gstatic.com/**","**/fonts.googleapis.com/**"]: ctx.route(pat,lambda r:r.abort())
+    ctx.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript"))
     pg=ctx.new_page(); pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("http://localhost:8765/"); pg.wait_for_timeout(500)
     print("opens on:",pg.inner_text("#bigDate"),"| nav:",[x for x in pg.locator("#nav button span").all_inner_texts()])

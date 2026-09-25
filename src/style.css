@@ -279,6 +279,7 @@ select.inp{appearance:auto}
 @keyframes toastIn{from{opacity:0;transform:translateY(12px)}}
 .toast-act{border:0;background:transparent;color:var(--sun);font-weight:700;padding:4px 6px;border-radius:8px;flex:0 0 auto}
 body.noqa .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.updbar{position:fixed;left:0;right:0;margin:0 auto;width:max-content;top:calc(10px + env(safe-area-inset-top,0px));background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:14px;font-size:14px;z-index:21;max-width:min(92vw,480px);display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);animation:toastIn .22s cubic-bezier(.2,.9,.3,1.2)}
 .loading{color:var(--muted);text-align:center;padding:40px 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -330,6 +331,7 @@ button:active{transform:scale(.97)}
   body.desk .dock{left:240px;padding-bottom:18px}
   body.desk .qa{max-width:760px}
   body.desk .toast{left:240px;bottom:110px}
+  body.desk .updbar{left:240px}
   body.desk.noqa .toast{bottom:32px}
   body.desk .pgrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:36px;align-items:start}
   body.desk .pcal{order:0;position:sticky;top:24px}
@@ -472,7 +474,7 @@ body.noqa .fpill{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 @keyframes pulse{50%{opacity:.35}}
 
 /* ---------- lock ---------- */
-body.locked .wrap,body.locked .dock,body.locked .side,body.locked .fpill,body.locked .toast,body.locked .scrim:not(.overlock){visibility:hidden}
+body.locked .wrap,body.locked .dock,body.locked .side,body.locked .fpill,body.locked .toast,body.locked .updbar,body.locked .scrim:not(.overlock){visibility:hidden}
 #lockScreen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));outline:none;animation:fade .15s}
 #lockScreen.out{opacity:0;transition:opacity .2s}
 #lockScreen h2{font-family:var(--display);font-size:22px;margin:4px 0 0}

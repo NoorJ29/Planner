@@ -296,6 +296,7 @@ select.inp{appearance:auto}
 @keyframes toastIn{from{opacity:0;transform:translateY(12px)}}
 .toast-act{border:0;background:transparent;color:var(--sun);font-weight:700;padding:4px 6px;border-radius:8px;flex:0 0 auto}
 body.noqa .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.updbar{position:fixed;left:0;right:0;margin:0 auto;width:max-content;top:calc(10px + env(safe-area-inset-top,0px));background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:14px;font-size:14px;z-index:21;max-width:min(92vw,480px);display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);animation:toastIn .22s cubic-bezier(.2,.9,.3,1.2)}
 .loading{color:var(--muted);text-align:center;padding:40px 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -347,6 +348,7 @@ button:active{transform:scale(.97)}
   body.desk .dock{left:240px;padding-bottom:18px}
   body.desk .qa{max-width:760px}
   body.desk .toast{left:240px;bottom:110px}
+  body.desk .updbar{left:240px}
   body.desk.noqa .toast{bottom:32px}
   body.desk .pgrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:36px;align-items:start}
   body.desk .pcal{order:0;position:sticky;top:24px}
@@ -489,7 +491,7 @@ body.noqa .fpill{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 @keyframes pulse{50%{opacity:.35}}
 
 /* ---------- lock ---------- */
-body.locked .wrap,body.locked .dock,body.locked .side,body.locked .fpill,body.locked .toast,body.locked .scrim:not(.overlock){visibility:hidden}
+body.locked .wrap,body.locked .dock,body.locked .side,body.locked .fpill,body.locked .toast,body.locked .updbar,body.locked .scrim:not(.overlock){visibility:hidden}
 #lockScreen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));outline:none;animation:fade .15s}
 #lockScreen.out{opacity:0;transition:opacity .2s}
 #lockScreen h2{font-family:var(--display);font-size:22px;margin:4px 0 0}
@@ -1581,7 +1583,8 @@ function renderSettings(main){
     row("Task lists",plural(SET.lists.length,"list"),h("button",{class:"chip",text:"Edit",onclick:openLists})),
     row("Home screen widgets","Choose what the Home tab shows",h("button",{class:"chip",text:"Customise",onclick:openDashEditor})),
     row("Bottom bar (phone)",["Home",...navChoice().map(id=>NAV_CHOICES.find(c=>c[0]===id)[1]),"More"].join(", "),h("button",{class:"chip",text:"Change",onclick:openNavEditor})),
-    row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))))));
+    row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))),
+    row("App version",Updates.version||"Checking…",h("button",{class:"chip",text:"Check for updates",onclick:e=>checkForUpdateNow(e.currentTarget)})))));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
     h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Planner icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
     h("p",{style:"margin:0 0 10px",text:"📤 Share to Planner: in any app, tap Share and pick Planner to save text or links as a note."}),
@@ -2390,7 +2393,7 @@ async function invite(L){
   const code=makeCode();const url=location.origin+location.pathname+"?join="+code;
   const box=h("div",{class:"codebox",text:"Creating code…"});
   const shareB=h("button",{class:"btn primary wide",text:"Send invite",disabled:true});
-  openSheet([h("h3",{text:"Invite to "+L.name}),h("p",{class:"small muted",style:"margin:0 0 12px",text:"Send this code or link to family. They open Planner, sign in with their own account, and join. Anyone with the code can join, so only share it with people you trust."}),box,h("div",{class:"btnrow"},shareB)]);
+  openSheet([h("h3",{text:"Invite to "+L.name}),h("p",{class:"small muted",style:"margin:0 0 12px",text:"Send this code or link to family. They open Planner, sign in with their own account, and join. Anyone with the code can join, so only share it with people you trust. The code works for 7 days."}),box,h("div",{class:"btnrow"},shareB)]);
   try{await fbDb.collection("invites").doc(code).set({listId:L.id,listName:L.name,createdBy:Store.user.uid,createdAt:Date.now()});
     box.textContent=fmtCode(code);shareB.disabled=false;
     shareB.onclick=()=>shareText("Join my list “"+L.name+"” on Planner","Open this link: "+url+"\nOr in Planner go to More, Shared lists, Join with a code, and enter "+fmtCode(code));}
@@ -2407,7 +2410,7 @@ function openJoin(pre){
       const {listId,listName}=inv.data();const uid=Store.user.uid;
       await fbDb.collection("shared").doc(listId).update({members:firebase.firestore.FieldValue.arrayUnion(uid),["memberInfo."+uid]:meInfo(),joinCode:code});
       close();UI.tab="more";UI.page="shared";UI.sharedList=listId;render();toast("You joined "+(listName||"the list"));}
-    catch(e){console.error(e);err.textContent=e&&e.code==="permission-denied"?"Couldn't join. The list may have been deleted, or the rules need updating.":"Couldn't join right now. Check your connection.";go.disabled=false;}};
+    catch(e){console.error(e);err.textContent=e&&e.code==="permission-denied"?"That code has expired or the list was deleted. Ask for a new code.":"Couldn't join right now. Check your connection.";go.disabled=false;}};
   setTimeout(()=>inp.focus(),60);
 }
 function leaveShared(L){
@@ -2739,8 +2742,25 @@ render();
 Store.init();
 refreshFocusUI();{const st=focusState();if(st&&!st.paused&&!st.done&&focusRemaining(st)<=0)finishFocus();else scheduleFocusEnd();}
 $("#focusPill").addEventListener("click",()=>openFocus());
+
+/* app updates: sw.js installs new versions straight away; offer a one-tap reload into them */
+const Updates={reg:null,shown:false,version:""};
+function readVersion(){if(!("caches" in window))return;caches.keys().then(ks=>{const v=(ks.find(k=>/^planner-/.test(k))||"").replace(/^planner-/,"");if(v!==Updates.version){Updates.version=v;if(UI.page==="settings")render();}}).catch(()=>{});}
+function showUpdateBar(){if(Updates.shown)return;Updates.shown=true;
+  document.body.append(h("div",{class:"updbar",role:"status"},h("span",{text:"A new version of Planner is ready."}),h("button",{class:"toast-act",text:"Update now",onclick:()=>location.reload()})));}
+function checkForUpdate(){return Updates.reg?Updates.reg.update():Promise.reject(new Error("no service worker"));}
+async function checkForUpdateNow(btn){
+  btn.disabled=true;
+  try{await checkForUpdate();const r=Updates.reg;if(!r.installing&&!r.waiting&&!Updates.shown)toast("You're up to date.");}
+  catch(e){toast(Updates.reg?"Couldn't check for updates. Are you online?":"Updates aren't available in this browser.");}
+  btn.disabled=false;
+}
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  let firstInstall=!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(firstInstall){firstInstall=false;readVersion();return;}showUpdateBar();});
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").then(r=>{Updates.reg=r;readVersion();}).catch(()=>{}));
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkForUpdate().catch(()=>{});});
+  setInterval(()=>checkForUpdate().catch(()=>{}),30*60*1000);
 }
 
 })();

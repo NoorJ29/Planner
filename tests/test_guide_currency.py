@@ -3,7 +3,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(); errs=[]
     for w,h,name in [(1440,900,"desk"),(390,844,"mob")]:
         pg=b.new_page(viewport={"width":w,"height":h}); pg.on("pageerror",lambda e:errs.append(str(e)))
-        pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
+        pg.route("**/www.gstatic.com/**",lambda r:r.abort()); pg.route("**/config.js",lambda r:r.fulfill(body="window.PLANNER_FIREBASE_CONFIG={};",content_type="text/javascript")); pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
         pg.goto("http://localhost:8765/"); pg.wait_for_timeout(500)
         if name=="desk":
             pg.keyboard.press("?"); pg.wait_for_timeout(300); pg.screenshot(path="tests/out/g_desk.png",full_page=True)
