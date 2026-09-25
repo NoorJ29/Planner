@@ -16,6 +16,7 @@ const ICONS={
   money:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10.5h18M15.5 15h2"/></svg>',
   links:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>',
   more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.4-3.8 4.3-5.8 7.5-5.8s6.1 2 7.5 5.8"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'
 };
 
@@ -176,19 +177,24 @@ const Store={
 let syncErr=false;
 function syncState(){
   if(Store.mode==="cloud"){
-    if(syncErr)return{mode:"error",label:"Sync problem",long:"Sync problem. Close and reopen the app to try again."};
-    if(!navigator.onLine)return{mode:"offline",label:"Offline",long:"Offline. Your changes are saved and will sync when you reconnect."};
-    return UI.ready?{mode:"cloud",label:"Synced",long:"Synced across your devices"}:{mode:"cloud",label:"Syncing…",long:"Syncing…"};}
-  return{mode:"local",label:fbAuth?"Sign in to sync":fbFailed?"Offline":"This device only",long:""};
+    if(syncErr)return{mode:"error",dot:"bad",label:"Sync problem",tip:"Not synced: there's a sync problem",long:"Sync problem. Close and reopen the app to try again."};
+    if(!navigator.onLine)return{mode:"offline",dot:"bad",label:"Offline",tip:"Not synced: you're offline. Changes will sync when you reconnect.",long:"Offline. Your changes are saved and will sync when you reconnect."};
+    return UI.ready?{mode:"cloud",dot:"ok",label:"Synced",tip:"Synced",long:"Synced across your devices"}:{mode:"cloud",dot:"busy",label:"Syncing…",tip:"Syncing…",long:"Syncing…"};}
+  return{mode:"local",dot:"none",label:fbAuth?"Sign in to sync":fbFailed?"Offline":"This device only",tip:"",long:""};
 }
+// The profile buttons: avatar with a status dot (green synced, red not synced, grey syncing).
 function updateSync(forced){
   if(forced==="error")syncErr=true;
   const st=syncState(),u=Store.user,me=u&&meInfo();
   const hact=$(".hact");if(hact)hact.classList.toggle("user",!!u);
   document.querySelectorAll(".sync").forEach(el=>{
-    el.className="sync "+st.mode+(u?" user":"");
-    const av=el.querySelector(".pav");if(av){av.textContent=me?me.name.charAt(0).toUpperCase():"";av.style.setProperty("--c",u?colorFor(u.uid):"");}
-    el.querySelector("span").textContent=u&&el.id!=="sync"?me.name+" · "+st.label:st.label;
+    el.classList.remove("cloud","offline","error","local");el.classList.add(st.mode);el.classList.toggle("user",!!u);el.dataset.dot=st.dot;
+    const av=el.querySelector(".pav"),ini=av&&av.querySelector("em");
+    if(av){av.classList.toggle("anon",!u);av.style.setProperty("--c",u?colorFor(u.uid):"");if(u)ini.textContent=me.name.charAt(0).toUpperCase();else ini.innerHTML=ICONS.person;}
+    const card=el.classList.contains("pcard");
+    el.querySelector("span").textContent=card?(u?me.name:fbAuth?"Sign in":st.label):st.label;
+    const mail=el.querySelector(".pmail");if(mail)mail.textContent=u?(u.email||""):fbAuth?"to sync your devices":fbFailed?"Couldn't reach sync":"Saved on this device";
+    const tip=el.querySelector(".tip");if(tip)tip.textContent=st.tip;
     el.setAttribute("aria-label",u?"Your profile: "+st.label:st.label);
   });
 }

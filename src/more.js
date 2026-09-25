@@ -311,7 +311,7 @@ function renderProfile(main){
   if(!u){main.append(h("div",{class:"card sec"},h("b",{text:"You're not signed in"}),h("p",{class:"small muted",text:fbAuth?"Sign in to sync your planner between your phone and laptop.":"Sync isn't set up, so everything is saved on this device only."}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
   const me=meInfo(),st=syncState(),row=(title,sub,ctrl)=>h("div",{class:"setrow"},h("div",null,h("b",{text:title}),sub?h("span",{text:sub}):null),ctrl);
   main.append(h("div",{class:"card sec prof"},h("span",{class:"pav big",style:"--c:"+colorFor(u.uid),text:me.name.charAt(0).toUpperCase()}),
-    h("div",{class:"pinfo"},h("b",{class:"pname",text:me.name}),h("span",{class:"small muted",text:u.email||""}),h("span",{class:"pstat "+st.mode},h("i"),st.long))));
+    h("div",{class:"pinfo"},h("b",{class:"pname",text:me.name}),h("span",{class:"small muted",text:u.email||""}),h("span",{class:"pstat "+st.dot},h("i"),st.long))));
   // stats
   const created=u.metadata&&u.metadata.creationTime?new Date(u.metadata.creationTime):null,notes=vals("notes");
   const focusMin=vals("focus").reduce((s,f)=>s+(Number(f.minutes)||0),0),best=vals("habits").reduce((m,x)=>Math.max(m,bestStreak(x)),0);

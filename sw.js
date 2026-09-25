@@ -1,5 +1,5 @@
 // Offline support. After changing any file, bump VERSION so phones pick up the update.
-const VERSION = "planner-v11";
+const VERSION = "planner-v12";
 const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 const CDN = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com", "cdnjs.cloudflare.com"];
 

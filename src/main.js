@@ -13,7 +13,8 @@ function draw(){
   buildNav(true);
   const cur=tab==="more"&&UI.page?UI.page:tab;
   [["#nav","phone"],["#sideNav","desk"]].forEach(([sel,which])=>{const ids=navFull(which),on=ids.includes(cur)?cur:"more";
-    document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on?"page":"false"));});
+    document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on&&!(which==="desk"&&cur==="settings")?"page":"false"));});
+  $("#sideSettings").setAttribute("aria-current",cur==="settings"?"page":"false");
   document.body.classList.toggle("desk",UI.desktop);
   const main=$("#main");main.textContent="";
   if(!UI.ready){setHeader("Planner","");main.append(h("div",{class:"loading",text:"Loading your planner…"}));return;}
@@ -60,6 +61,8 @@ document.querySelectorAll(".sync").forEach(b=>b.addEventListener("click",openAcc
 MQ.addEventListener("change",()=>{UI.desktop=MQ.matches;render();});
 function openGuide(){UI.tab="more";UI.page="guide";render();window.scrollTo(0,0);}
 $("#sideGuide").addEventListener("click",openGuide);
+$("#sideSettings").addEventListener("click",()=>goNav("settings"));
+$("#sync").addEventListener("contextmenu",e=>{if(!Store.user)return;e.preventDefault();toast(syncState().tip);}); // long-press on a phone shows the sync status
 
 /* keyboard shortcuts (laptop) */
 function newInSection(){

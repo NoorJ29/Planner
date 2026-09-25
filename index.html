@@ -55,21 +55,22 @@ body.noqa .wrap{padding-bottom:130px}
 .date-sub{color:var(--muted);margin-top:6px;font-size:15px}
 .hact{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
 .hbtn{border:1px solid var(--line);background:var(--surface);width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:var(--ink)}
-.sync{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;border:0;background:transparent;border-radius:10px;padding:6px 2px}
-.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
-.sync.cloud i{background:var(--accent)}
-.sync.offline i{background:var(--sun)}
-.sync.error i{background:var(--danger)}
-.sync{position:relative}
-.pav{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;background:var(--c,var(--accent));flex:0 0 auto}
+.sync{position:relative;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;border:0;background:transparent;border-radius:10px;padding:6px 2px}
+/* avatar with a status dot: green synced, red not synced, grey syncing */
+.pav{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;background:var(--c,var(--accent));flex:0 0 auto}
+.pav > em{font-style:normal;display:grid;place-items:center}
+.pav > em svg{width:20px;height:20px}
+.pav.anon{background:var(--sunken);color:var(--muted)}
+.pav > i{position:absolute;right:-2px;bottom:-2px;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--bg);background:var(--muted);display:none}
+.sync.user .pav > i{display:block}
+.sync[data-dot="ok"] .pav > i{background:var(--good)}
+.sync[data-dot="bad"] .pav > i{background:var(--danger)}
 .sync .pav{display:none}
 .sync.user .pav{display:grid}
-.sync.user > i{position:absolute;left:26px;top:30px;width:11px;height:11px;border:2px solid var(--bg)}
 #sync.user span{display:none}
 .hact.user{flex-direction:row;align-items:center;gap:8px}
 #sync.user{padding:0}
 #sync.user .pav{width:42px;height:42px;font-size:17px}
-#sync.user > i{left:31px;top:31px}
 .pav.big{width:64px;height:64px;font-size:28px;font-family:var(--display)}
 .prof{display:flex;align-items:center;gap:16px}
 .pinfo{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -77,9 +78,8 @@ body.noqa .wrap{padding-bottom:130px}
 .pname{font-family:var(--display);font-size:22px;font-weight:700}
 .pstat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-top:4px}
 .pstat i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:0 0 auto}
-.pstat.cloud i{background:var(--accent)}
-.pstat.offline i{background:var(--sun)}
-.pstat.error i{background:var(--danger)}
+.pstat.ok i{background:var(--good)}
+.pstat.bad i{background:var(--danger)}
 .pform{display:flex;flex-direction:column;gap:8px}
 .card.dz{border-color:var(--danger)}
 .btn.dzbtn{background:transparent;color:var(--danger);border:1.5px solid var(--danger)}
@@ -360,9 +360,29 @@ button:active{transform:scale(.97)}
   .side-nav button:hover{background:var(--sunken);color:var(--ink)}
   .side-nav button:hover kbd{opacity:1}
   .side-nav button[aria-current="page"]{background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--accent)}
-  .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:0 8px}
-  .side-foot .sync{justify-content:flex-start;padding:6px 0;font-size:13px}
+  .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:0 2px}
   .side-foot p{margin:0;line-height:2}
+  /* profile card */
+  .side-foot .pcard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:11px;align-items:center;width:100%;padding:10px 12px 10px 10px;border-radius:16px;
+    background:var(--surface);border:1px solid var(--line);color:var(--ink);font-size:14px;text-align:left;transition:background .15s,border-color .15s,box-shadow .15s}
+  .side-foot .pcard:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 6%,var(--surface));box-shadow:0 4px 14px rgba(22,48,43,.08)}
+  .side-foot .pcard .pav{display:grid;grid-row:1/3;width:40px;height:40px;font-size:17px;box-shadow:0 0 0 2px var(--surface),0 0 0 4px color-mix(in srgb,var(--c,var(--muted)) 30%,transparent)}
+  .side-foot .pcard .pav > i{border-color:var(--surface)}
+  .side-foot .pcard > span{grid-column:2;align-self:end;font-weight:700;overflow:hidden;text-overflow:ellipsis}
+  .side-foot .pcard .pmail{grid-column:2;align-self:start;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+  .side-foot .pcard .pchev{grid-column:3;grid-row:1/3;font-style:normal;font-size:22px;line-height:1;color:var(--muted);transition:transform .15s}
+  .side-foot .pcard:hover .pchev{transform:translateX(2px);color:var(--accent)}
+  .tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);width:max-content;max-width:210px;padding:7px 11px;border-radius:10px;background:var(--ink);color:var(--bg);
+    font-size:12px;font-weight:600;line-height:1.35;text-align:center;white-space:normal;text-decoration:none;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:3}
+  .tip::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink)}
+  .pcard.user:hover .tip,.pcard.user:focus-visible .tip{opacity:1;transform:translate(-50%,0)}
+  /* settings + guide */
+  .side-set{display:flex;align-items:center;gap:6px}
+  #sideSettings{flex:1;display:flex;align-items:center;gap:12px;border:0;background:transparent;border-radius:12px;padding:10px;font-weight:600;font-size:15px;color:var(--muted);text-align:left}
+  #sideSettings:hover{background:var(--sunken);color:var(--ink)}
+  #sideSettings[aria-current="page"]{background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--accent)}
+  .qbtn{width:36px;height:36px;flex:0 0 auto;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:800;font-size:15px}
+  .qbtn:hover{color:var(--accent);border-color:var(--accent)}
   body.desk .wrap{max-width:none;margin:0 0 0 240px;padding:34px 48px 150px}
   body.desk.noqa .wrap{padding-bottom:60px}
   body.desk .top,body.desk main{max-width:1180px;margin-left:auto;margin-right:auto}
@@ -393,9 +413,6 @@ button:active{transform:scale(.97)}
 .keys{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto;max-width:55%}
 .keys kbd{font-size:13px;padding:4px 8px;min-width:28px;text-align:center;color:var(--ink)}
 .keys .plus{font-size:12px;color:var(--muted)}
-.side-guide{border:0;background:transparent;display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;font-weight:600;color:var(--muted);text-align:left}
-.side-guide kbd{margin-left:auto}
-.side-guide:hover{color:var(--ink)}
 
 /* ---------- links ---------- */
 .ltools{display:flex;gap:8px;align-items:center;margin-top:16px}
@@ -598,8 +615,11 @@ body.locked .wrap,body.locked .dock,body.locked .side,body.locked .fpill,body.lo
   <button class="side-search" id="sideSearch"><span>Search</span><kbd>/</kbd></button>
   <nav class="side-nav" id="sideNav" aria-label="Sections"></nav>
   <div class="side-foot">
-    <button class="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"></b><i></i><span>Starting…</span></button>
-    <button class="side-guide" id="sideGuide">📖 Guide and shortcuts <kbd>?</kbd></button>
+    <button class="sync pcard" aria-label="Sync and account"><b class="pav" aria-hidden="true"><em></em><i></i></b><span>Starting…</span><small class="pmail"></small><em class="pchev" aria-hidden="true">›</em><u class="tip" aria-hidden="true"></u></button>
+    <div class="side-set">
+      <button id="sideSettings" data-tab="settings"><span class="ico emo">⚙️</span><span>Settings</span></button>
+      <button class="qbtn" id="sideGuide" aria-label="Guide and shortcuts" title="Guide and shortcuts (?)">?</button>
+    </div>
   </div>
 </aside>
 <div class="wrap">
@@ -607,7 +627,7 @@ body.locked .wrap,body.locked .dock,body.locked .side,body.locked .fpill,body.lo
     <div class="ttl"><h1 class="date-big" id="bigDate">Planner</h1><div class="date-sub" id="subDate"></div></div>
     <div class="hact">
       <button class="hbtn" id="searchBtn" aria-label="Search"></button>
-      <button class="sync" id="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"></b><i></i><span>Starting…</span></button>
+      <button class="sync" id="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"><em></em><i></i></b><span>Starting…</span></button>
     </div>
   </header>
   <main id="main"></main>
@@ -643,6 +663,7 @@ const ICONS={
   money:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10.5h18M15.5 15h2"/></svg>',
   links:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>',
   more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.4-3.8 4.3-5.8 7.5-5.8s6.1 2 7.5 5.8"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'
 };
 
@@ -803,19 +824,24 @@ const Store={
 let syncErr=false;
 function syncState(){
   if(Store.mode==="cloud"){
-    if(syncErr)return{mode:"error",label:"Sync problem",long:"Sync problem. Close and reopen the app to try again."};
-    if(!navigator.onLine)return{mode:"offline",label:"Offline",long:"Offline. Your changes are saved and will sync when you reconnect."};
-    return UI.ready?{mode:"cloud",label:"Synced",long:"Synced across your devices"}:{mode:"cloud",label:"Syncing…",long:"Syncing…"};}
-  return{mode:"local",label:fbAuth?"Sign in to sync":fbFailed?"Offline":"This device only",long:""};
+    if(syncErr)return{mode:"error",dot:"bad",label:"Sync problem",tip:"Not synced: there's a sync problem",long:"Sync problem. Close and reopen the app to try again."};
+    if(!navigator.onLine)return{mode:"offline",dot:"bad",label:"Offline",tip:"Not synced: you're offline. Changes will sync when you reconnect.",long:"Offline. Your changes are saved and will sync when you reconnect."};
+    return UI.ready?{mode:"cloud",dot:"ok",label:"Synced",tip:"Synced",long:"Synced across your devices"}:{mode:"cloud",dot:"busy",label:"Syncing…",tip:"Syncing…",long:"Syncing…"};}
+  return{mode:"local",dot:"none",label:fbAuth?"Sign in to sync":fbFailed?"Offline":"This device only",tip:"",long:""};
 }
+// The profile buttons: avatar with a status dot (green synced, red not synced, grey syncing).
 function updateSync(forced){
   if(forced==="error")syncErr=true;
   const st=syncState(),u=Store.user,me=u&&meInfo();
   const hact=$(".hact");if(hact)hact.classList.toggle("user",!!u);
   document.querySelectorAll(".sync").forEach(el=>{
-    el.className="sync "+st.mode+(u?" user":"");
-    const av=el.querySelector(".pav");if(av){av.textContent=me?me.name.charAt(0).toUpperCase():"";av.style.setProperty("--c",u?colorFor(u.uid):"");}
-    el.querySelector("span").textContent=u&&el.id!=="sync"?me.name+" · "+st.label:st.label;
+    el.classList.remove("cloud","offline","error","local");el.classList.add(st.mode);el.classList.toggle("user",!!u);el.dataset.dot=st.dot;
+    const av=el.querySelector(".pav"),ini=av&&av.querySelector("em");
+    if(av){av.classList.toggle("anon",!u);av.style.setProperty("--c",u?colorFor(u.uid):"");if(u)ini.textContent=me.name.charAt(0).toUpperCase();else ini.innerHTML=ICONS.person;}
+    const card=el.classList.contains("pcard");
+    el.querySelector("span").textContent=card?(u?me.name:fbAuth?"Sign in":st.label):st.label;
+    const mail=el.querySelector(".pmail");if(mail)mail.textContent=u?(u.email||""):fbAuth?"to sync your devices":fbFailed?"Couldn't reach sync":"Saved on this device";
+    const tip=el.querySelector(".tip");if(tip)tip.textContent=st.tip;
     el.setAttribute("aria-label",u?"Your profile: "+st.label:st.label);
   });
 }
@@ -1690,7 +1716,7 @@ function renderProfile(main){
   if(!u){main.append(h("div",{class:"card sec"},h("b",{text:"You're not signed in"}),h("p",{class:"small muted",text:fbAuth?"Sign in to sync your planner between your phone and laptop.":"Sync isn't set up, so everything is saved on this device only."}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
   const me=meInfo(),st=syncState(),row=(title,sub,ctrl)=>h("div",{class:"setrow"},h("div",null,h("b",{text:title}),sub?h("span",{text:sub}):null),ctrl);
   main.append(h("div",{class:"card sec prof"},h("span",{class:"pav big",style:"--c:"+colorFor(u.uid),text:me.name.charAt(0).toUpperCase()}),
-    h("div",{class:"pinfo"},h("b",{class:"pname",text:me.name}),h("span",{class:"small muted",text:u.email||""}),h("span",{class:"pstat "+st.mode},h("i"),st.long))));
+    h("div",{class:"pinfo"},h("b",{class:"pname",text:me.name}),h("span",{class:"small muted",text:u.email||""}),h("span",{class:"pstat "+st.dot},h("i"),st.long))));
   // stats
   const created=u.metadata&&u.metadata.creationTime?new Date(u.metadata.creationTime):null,notes=vals("notes");
   const focusMin=vals("focus").reduce((s,f)=>s+(Number(f.minutes)||0),0),best=vals("habits").reduce((m,x)=>Math.max(m,bestStreak(x)),0);
@@ -2772,7 +2798,8 @@ function draw(){
   buildNav(true);
   const cur=tab==="more"&&UI.page?UI.page:tab;
   [["#nav","phone"],["#sideNav","desk"]].forEach(([sel,which])=>{const ids=navFull(which),on=ids.includes(cur)?cur:"more";
-    document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on?"page":"false"));});
+    document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on&&!(which==="desk"&&cur==="settings")?"page":"false"));});
+  $("#sideSettings").setAttribute("aria-current",cur==="settings"?"page":"false");
   document.body.classList.toggle("desk",UI.desktop);
   const main=$("#main");main.textContent="";
   if(!UI.ready){setHeader("Planner","");main.append(h("div",{class:"loading",text:"Loading your planner…"}));return;}
@@ -2819,6 +2846,8 @@ document.querySelectorAll(".sync").forEach(b=>b.addEventListener("click",openAcc
 MQ.addEventListener("change",()=>{UI.desktop=MQ.matches;render();});
 function openGuide(){UI.tab="more";UI.page="guide";render();window.scrollTo(0,0);}
 $("#sideGuide").addEventListener("click",openGuide);
+$("#sideSettings").addEventListener("click",()=>goNav("settings"));
+$("#sync").addEventListener("contextmenu",e=>{if(!Store.user)return;e.preventDefault();toast(syncState().tip);}); // long-press on a phone shows the sync status
 
 /* keyboard shortcuts (laptop) */
 function newInSection(){

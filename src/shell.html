@@ -24,8 +24,11 @@
   <button class="side-search" id="sideSearch"><span>Search</span><kbd>/</kbd></button>
   <nav class="side-nav" id="sideNav" aria-label="Sections"></nav>
   <div class="side-foot">
-    <button class="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"></b><i></i><span>Starting…</span></button>
-    <button class="side-guide" id="sideGuide">📖 Guide and shortcuts <kbd>?</kbd></button>
+    <button class="sync pcard" aria-label="Sync and account"><b class="pav" aria-hidden="true"><em></em><i></i></b><span>Starting…</span><small class="pmail"></small><em class="pchev" aria-hidden="true">›</em><u class="tip" aria-hidden="true"></u></button>
+    <div class="side-set">
+      <button id="sideSettings" data-tab="settings"><span class="ico emo">⚙️</span><span>Settings</span></button>
+      <button class="qbtn" id="sideGuide" aria-label="Guide and shortcuts" title="Guide and shortcuts (?)">?</button>
+    </div>
   </div>
 </aside>
 <div class="wrap">
@@ -33,7 +36,7 @@
     <div class="ttl"><h1 class="date-big" id="bigDate">Planner</h1><div class="date-sub" id="subDate"></div></div>
     <div class="hact">
       <button class="hbtn" id="searchBtn" aria-label="Search"></button>
-      <button class="sync" id="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"></b><i></i><span>Starting…</span></button>
+      <button class="sync" id="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"><em></em><i></i></b><span>Starting…</span></button>
     </div>
   </header>
   <main id="main"></main>
