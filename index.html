@@ -44,6 +44,8 @@ button{cursor:pointer}
 .wrap{max-width:720px;margin:0 auto;padding:20px 18px 200px}
 body.noqa .wrap{padding-bottom:130px}
 .ico{display:inline-flex}
+.ico.emo{width:22px;height:22px;align-items:center;justify-content:center;font-size:18px;line-height:1}
+.navprev{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:var(--sunken);font-weight:600}
 .ico svg{width:22px;height:22px}
 
 /* header */
@@ -1614,7 +1616,8 @@ function renderSettings(main){
     row("Currency",currencyLabel(),currencyButton()),
     row("Task lists",plural(SET.lists.length,"list"),h("button",{class:"chip",text:"Edit",onclick:openLists})),
     row("Home screen widgets","Choose what the Home tab shows",h("button",{class:"chip",text:"Customise",onclick:openDashEditor})),
-    row("Bottom bar (phone)",["Home",...navChoice().map(id=>NAV_CHOICES.find(c=>c[0]===id)[1]),"More"].join(", "),h("button",{class:"chip",text:"Change",onclick:openNavEditor})),
+    row("Bottom bar (phone)",navFull("phone").map(navName).join(", "),h("button",{class:"chip",text:"Change",onclick:()=>openNavEditor("phone")})),
+    row("Sidebar (laptop)",navFull("desk").map(navName).join(", "),h("button",{class:"chip",text:"Change",onclick:()=>openNavEditor("desk")})),
     row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))),
     row("App version",Updates.version||"Checking…",h("button",{class:"chip",text:"Check for updates",onclick:e=>checkForUpdateNow(e.currentTarget)})))));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
@@ -1636,7 +1639,7 @@ function renderGuide(main){
     keyRow([["F"]],"Open the focus timer"),
     keyRow([["/"],[CTRL,"K"]],"Search everything"),
     keyRow([["Q"]],"Jump to the quick-add bar"),
-    keyRow([["1"],["2"],["3"],["4"],["5"],["6"],["7"]],"Go to Home, Plan, Habits, Notes, Money, Links, More"),
+    keyRow([["1"],["2"],["…"],["9"]],"Go to the pages in your sidebar, in order ("+navFull("desk").slice(0,9).map(navName).join(", ")+")"),
     keyRow([["T"]],"Jump to today (in Plan)"),
     keyRow([["←"],["→"]],"Previous or next day (in Plan)"),
     keyRow([[CTRL,"Enter"]],"Save the open form"),
@@ -1771,7 +1774,7 @@ function renderMore(main){
   setHeader("More","Everything else in one place");
   const open=k=>{if(k==="focus"){openFocus();return;}UI.page=k;render();window.scrollTo(0,0);};
   const item=(k,e,t,s,fn)=>h("button",{class:"mi",onclick:fn||(()=>open(k))},h("span",{class:"e",text:e}),h("b",{text:t}),h("span",{text:s}));
-  if(!UI.desktop){const hidden=NAV_CHOICES.filter(c=>!navChoice().includes(c[0]));
+  {const hidden=NAV_CHOICES.filter(c=>!navLayout(UI.desktop?"desk":"phone").includes(c[0]));
     const SEC={plan:["🗓️","Your tasks and calendar"],habits:["🔥","Daily habits and streaks"],notes:["📝","Notes and journal"],money:["💰","Spending and budget"],links:["🔗","Your saved websites"]};
     if(hidden.length)main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:"Sections"}),h("div",{class:"menu"},hidden.map(([id,nm])=>item(id,SEC[id][0],nm,SEC[id][1],()=>goTab(id)))));}
   MENU.forEach(([g,keys])=>{main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:g}),h("div",{class:"menu"},keys.map(k=>k==="focus"?item("focus","⏱️","Focus timer",focusState()?"Session running":"Pomodoro-style focus"):item(k,...PAGES[k]))));});
@@ -2722,23 +2725,36 @@ function openDashEditor(){
   cancel.onclick=close;save.onclick=()=>{Store.settings({dashboard:draft});close();toast("Home screen updated");};
 }
 
-/* ================= bottom bar choice (phone) ================= */
+/* ================= menu layout (phone bottom bar & laptop sidebar) ================= */
+// Home is always first and More always last; in between, any sections or More pages, in your order.
 const NAV_CHOICES=[["plan","Plan"],["habits","Habits"],["notes","Notes"],["money","Money"],["links","Links"]];
-function navChoice(){try{const v=JSON.parse(lsGet("planner.nav","null"));if(Array.isArray(v)&&v.length===4&&v.every(x=>NAV_CHOICES.some(c=>c[0]===x)))return v;}catch(e){}return["plan","habits","notes","money"];}
-function openNavEditor(){
-  let pick=navChoice().slice();const box=h("div");
-  const draw=()=>{box.textContent="";
-    box.append(h("div",{class:"dashrow"},h("span",{class:"wdi",text:"🏠"}),h("b",{text:"Home"}),h("span",{class:"small muted",text:"Always first"})));
-    pick.forEach((id,i)=>{const nm=NAV_CHOICES.find(c=>c[0]===id)[1];box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},ico(id)),h("b",{text:nm}),h("span",{class:"arrows"},
-      h("button",{type:"button",class:"x","aria-label":"Move left",text:"↑",disabled:i===0,onclick:()=>{pick.splice(i-1,0,pick.splice(i,1)[0]);draw();}}),h("button",{type:"button",class:"x","aria-label":"Move right",text:"↓",disabled:i===pick.length-1,onclick:()=>{pick.splice(i+1,0,pick.splice(i,1)[0]);draw();}}),
+const NAV_LAYOUTS={phone:{key:"navPhone",max:4,def:["plan","habits","notes","money"],title:"Bottom bar (phone)"},desk:{key:"navDesk",max:0,def:["plan","habits","notes","money","links"],title:"Sidebar (laptop)"}};
+function navPinnable(){return[...NAV_CHOICES,...MENU.flatMap(g=>g[1]).map(k=>[k,k==="focus"?"Focus timer":PAGES[k][1]])];}
+const navName=id=>id==="home"?"Home":id==="more"?"More":id==="focus"?"Focus":((navPinnable().find(c=>c[0]===id)||[])[1]||id);
+function navIcon(id){return ICONS[id]?ico(id):h("span",{class:"ico emo",text:id==="focus"?"⏱️":(PAGES[id]||["•"])[0]});}
+function navValid(v,max){const ok=navPinnable().map(c=>c[0]);return Array.isArray(v)&&v.every(x=>ok.includes(x))&&new Set(v).size===v.length&&(max?v.length===max:true);}
+function navLayout(which){const L=NAV_LAYOUTS[which],v=SET[L.key];if(navValid(v,L.max))return v.slice();
+  if(which==="phone"){try{const old=JSON.parse(lsGet("planner.nav","null"));if(navValid(old,4))return old;}catch(e){}} // older per-device choice
+  return L.def.slice();}
+const navFull=which=>["home",...navLayout(which),"more"];
+function goNav(id){if(id==="focus"){openFocus();return;}if(TABS.some(t=>t[0]===id)){goTab(id);return;}UI.tab="more";UI.page=id;UI.sharedList=null;if(id!=="links")UI.linkEdit=false;render();window.scrollTo(0,0);}
+function openNavEditor(which){
+  which=which==="desk"?"desk":"phone";const L=NAV_LAYOUTS[which];let pick=navLayout(which);const box=h("div"),preview=h("p",{class:"small navprev"});
+  const draw=()=>{box.textContent="";preview.textContent=["Home",...pick.map(navName),"More"].join(" · ");
+    box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},ico("home")),h("b",{text:"Home"}),h("span",{class:"small muted",text:"Always first"})));
+    pick.forEach((id,i)=>{const nm=navName(id);box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},navIcon(id)),h("b",{text:nm}),h("span",{class:"arrows"},
+      h("button",{type:"button",class:"x","aria-label":"Move "+nm+" up",text:"↑",disabled:i===0,onclick:()=>{pick.splice(i-1,0,pick.splice(i,1)[0]);draw();}}),h("button",{type:"button",class:"x","aria-label":"Move "+nm+" down",text:"↓",disabled:i===pick.length-1,onclick:()=>{pick.splice(i+1,0,pick.splice(i,1)[0]);draw();}}),
       h("button",{type:"button",class:"x","aria-label":"Remove "+nm,text:"×",onclick:()=>{pick.splice(i,1);draw();}}))));});
     box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},ico("more")),h("b",{text:"More"}),h("span",{class:"small muted",text:"Always last"})));
-    const rest=NAV_CHOICES.filter(c=>!pick.includes(c[0]));
-    if(rest.length)box.append(h("div",{class:"field"},h("span",{class:"lbl",text:pick.length<4?"Add "+(4-pick.length)+" more":"In More instead"}),h("div",{class:"row"},rest.map(([id,nm])=>h("button",{type:"button",class:"chip",disabled:pick.length>=4,text:"+ "+nm,onclick:()=>{pick.push(id);draw();}})))));
-    save.disabled=pick.length!==4;};
+    const rest=navPinnable().filter(c=>!pick.includes(c[0])),full=L.max&&pick.length>=L.max;
+    if(rest.length)box.append(h("div",{class:"field"},h("span",{class:"lbl",text:L.max?(pick.length<L.max?"Add "+(L.max-pick.length)+" more":"Remove one to add another"):"Add to the sidebar"}),
+      h("div",{class:"row"},rest.map(([id,nm])=>h("button",{type:"button",class:"chip",disabled:!!full,text:"+ "+nm,onclick:()=>{pick.push(id);draw();}})))));
+    save.disabled=!!L.max&&pick.length!==L.max;};
   const save=h("button",{class:"btn primary",text:"Save"}),cancel=h("button",{class:"btn ghost",text:"Cancel"});
-  const close=openSheet([h("h3",{text:"Bottom bar"}),h("p",{class:"small muted",style:"margin:0 0 6px",text:"Pick the 4 sections you use most. The others are always one tap away in More. This is saved per device."}),box,h("div",{class:"actions"},cancel,save)]);
-  draw();cancel.onclick=close;save.onclick=()=>{lsSet("planner.nav",JSON.stringify(pick));buildNav();close();render();};
+  const close=openSheet([h("h3",{text:which==="phone"?"Bottom bar":"Sidebar"}),
+    h("p",{class:"small muted",style:"margin:0 0 6px",text:(which==="phone"?"Pick the 4 pages you use most, in the order you want them.":"Pick the pages to show in the laptop sidebar, in your order. Number keys 1 to 9 follow this order.")+" Everything else stays one tap away in More."+(Store.user?" Saved to your account.":"")}),
+    preview,box,h("div",{class:"actions"},cancel,save)]);
+  draw();cancel.onclick=close;save.onclick=()=>{Store.settings({[L.key]:pick});buildNav();close();render();};
 }
 
 /* ================= main ================= */
@@ -2753,9 +2769,10 @@ function draw(){
   if(tab!=="links")document.body.classList.remove("editing");
   const ae=document.activeElement,refocus=ae&&ae.id&&$("#main").contains(ae)?{id:ae.id,a:ae.selectionStart,b:ae.selectionEnd}:null;
   document.body.classList.toggle("noqa",!qaOn);
-  const phoneTabs=["home",...navChoice(),"more"];const inMore=!phoneTabs.includes(tab);
-  document.querySelectorAll("#nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab||(inMore&&b.dataset.tab==="more")?"page":"false"));
-  document.querySelectorAll("#sideNav button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
+  buildNav(true);
+  const cur=tab==="more"&&UI.page?UI.page:tab;
+  [["#nav","phone"],["#sideNav","desk"]].forEach(([sel,which])=>{const ids=navFull(which),on=ids.includes(cur)?cur:"more";
+    document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on?"page":"false"));});
   document.body.classList.toggle("desk",UI.desktop);
   const main=$("#main");main.textContent="";
   if(!UI.ready){setHeader("Planner","");main.append(h("div",{class:"loading",text:"Loading your planner…"}));return;}
@@ -2789,9 +2806,13 @@ $("#qaMore").addEventListener("click",()=>{const qi=$("#qaInput");const v=qi.val
 
 /* nav */
 const nav=$("#nav"),sideNav=$("#sideNav");
-function buildNav(){nav.textContent="";["home",...navChoice(),"more"].forEach(t=>{const l=TABS.find(x=>x[0]===t)[1];nav.append(h("button",{"data-tab":t,"aria-label":l,onclick:()=>goTab(t)},ico(t),h("span",{text:l})));});}
+let navBuilt="";
+function buildNav(onlyIfChanged){
+  const sig=JSON.stringify([navFull("phone"),navFull("desk")]);if(onlyIfChanged&&sig===navBuilt)return;navBuilt=sig;
+  nav.textContent="";navFull("phone").forEach(t=>{const l=navName(t);nav.append(h("button",{"data-tab":t,"aria-label":l,onclick:()=>goNav(t)},navIcon(t),h("span",{text:l})));});
+  sideNav.textContent="";navFull("desk").forEach((t,i)=>{sideNav.append(h("button",{"data-tab":t,onclick:()=>goNav(t)},navIcon(t),h("span",{text:navName(t)}),i<9?h("kbd",{text:String(i+1)}):null));});
+}
 buildNav();
-TABS.forEach(([t,l],i)=>{sideNav.append(h("button",{"data-tab":t,onclick:()=>goTab(t)},ico(t),h("span",{text:l}),h("kbd",{text:String(i+1)})));});
 $("#searchBtn").append(ico("search"));$("#searchBtn").addEventListener("click",openSearch);
 $("#sideSearch").prepend(ico("search"));$("#sideSearch").addEventListener("click",openSearch);
 document.querySelectorAll(".sync").forEach(b=>b.addEventListener("click",openAccount));
@@ -2820,7 +2841,7 @@ document.addEventListener("keydown",e=>{
   const k=e.key;
   if(k==="/"){e.preventDefault();openSearch();}
   else if(k==="n"||k==="N"){e.preventDefault();newInSection();}
-  else if(/^[1-7]$/.test(k))goTab(TABS[Number(k)-1][0]);
+  else if(/^[1-9]$/.test(k)){const id=navFull("desk")[Number(k)-1];if(id)goNav(id);}
   else if(k==="f"||k==="F"){e.preventDefault();openFocus();}
   else if(UI.tab==="plan"&&(k==="t"||k==="T")){UI.stripScroll=null;pickDay(todayKey());}
   else if(UI.tab==="plan"&&(k==="ArrowLeft"||k==="ArrowRight")){e.preventDefault();UI.stripScroll=null;pickDay(key(addDays(fromKey(UI.sel),k==="ArrowLeft"?-1:1)));}

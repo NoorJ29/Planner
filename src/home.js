@@ -92,21 +92,34 @@ function openDashEditor(){
   cancel.onclick=close;save.onclick=()=>{Store.settings({dashboard:draft});close();toast("Home screen updated");};
 }
 
-/* ================= bottom bar choice (phone) ================= */
+/* ================= menu layout (phone bottom bar & laptop sidebar) ================= */
+// Home is always first and More always last; in between, any sections or More pages, in your order.
 const NAV_CHOICES=[["plan","Plan"],["habits","Habits"],["notes","Notes"],["money","Money"],["links","Links"]];
-function navChoice(){try{const v=JSON.parse(lsGet("planner.nav","null"));if(Array.isArray(v)&&v.length===4&&v.every(x=>NAV_CHOICES.some(c=>c[0]===x)))return v;}catch(e){}return["plan","habits","notes","money"];}
-function openNavEditor(){
-  let pick=navChoice().slice();const box=h("div");
-  const draw=()=>{box.textContent="";
-    box.append(h("div",{class:"dashrow"},h("span",{class:"wdi",text:"🏠"}),h("b",{text:"Home"}),h("span",{class:"small muted",text:"Always first"})));
-    pick.forEach((id,i)=>{const nm=NAV_CHOICES.find(c=>c[0]===id)[1];box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},ico(id)),h("b",{text:nm}),h("span",{class:"arrows"},
-      h("button",{type:"button",class:"x","aria-label":"Move left",text:"↑",disabled:i===0,onclick:()=>{pick.splice(i-1,0,pick.splice(i,1)[0]);draw();}}),h("button",{type:"button",class:"x","aria-label":"Move right",text:"↓",disabled:i===pick.length-1,onclick:()=>{pick.splice(i+1,0,pick.splice(i,1)[0]);draw();}}),
+const NAV_LAYOUTS={phone:{key:"navPhone",max:4,def:["plan","habits","notes","money"],title:"Bottom bar (phone)"},desk:{key:"navDesk",max:0,def:["plan","habits","notes","money","links"],title:"Sidebar (laptop)"}};
+function navPinnable(){return[...NAV_CHOICES,...MENU.flatMap(g=>g[1]).map(k=>[k,k==="focus"?"Focus timer":PAGES[k][1]])];}
+const navName=id=>id==="home"?"Home":id==="more"?"More":id==="focus"?"Focus":((navPinnable().find(c=>c[0]===id)||[])[1]||id);
+function navIcon(id){return ICONS[id]?ico(id):h("span",{class:"ico emo",text:id==="focus"?"⏱️":(PAGES[id]||["•"])[0]});}
+function navValid(v,max){const ok=navPinnable().map(c=>c[0]);return Array.isArray(v)&&v.every(x=>ok.includes(x))&&new Set(v).size===v.length&&(max?v.length===max:true);}
+function navLayout(which){const L=NAV_LAYOUTS[which],v=SET[L.key];if(navValid(v,L.max))return v.slice();
+  if(which==="phone"){try{const old=JSON.parse(lsGet("planner.nav","null"));if(navValid(old,4))return old;}catch(e){}} // older per-device choice
+  return L.def.slice();}
+const navFull=which=>["home",...navLayout(which),"more"];
+function goNav(id){if(id==="focus"){openFocus();return;}if(TABS.some(t=>t[0]===id)){goTab(id);return;}UI.tab="more";UI.page=id;UI.sharedList=null;if(id!=="links")UI.linkEdit=false;render();window.scrollTo(0,0);}
+function openNavEditor(which){
+  which=which==="desk"?"desk":"phone";const L=NAV_LAYOUTS[which];let pick=navLayout(which);const box=h("div"),preview=h("p",{class:"small navprev"});
+  const draw=()=>{box.textContent="";preview.textContent=["Home",...pick.map(navName),"More"].join(" · ");
+    box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},ico("home")),h("b",{text:"Home"}),h("span",{class:"small muted",text:"Always first"})));
+    pick.forEach((id,i)=>{const nm=navName(id);box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},navIcon(id)),h("b",{text:nm}),h("span",{class:"arrows"},
+      h("button",{type:"button",class:"x","aria-label":"Move "+nm+" up",text:"↑",disabled:i===0,onclick:()=>{pick.splice(i-1,0,pick.splice(i,1)[0]);draw();}}),h("button",{type:"button",class:"x","aria-label":"Move "+nm+" down",text:"↓",disabled:i===pick.length-1,onclick:()=>{pick.splice(i+1,0,pick.splice(i,1)[0]);draw();}}),
       h("button",{type:"button",class:"x","aria-label":"Remove "+nm,text:"×",onclick:()=>{pick.splice(i,1);draw();}}))));});
     box.append(h("div",{class:"dashrow"},h("span",{class:"wdi"},ico("more")),h("b",{text:"More"}),h("span",{class:"small muted",text:"Always last"})));
-    const rest=NAV_CHOICES.filter(c=>!pick.includes(c[0]));
-    if(rest.length)box.append(h("div",{class:"field"},h("span",{class:"lbl",text:pick.length<4?"Add "+(4-pick.length)+" more":"In More instead"}),h("div",{class:"row"},rest.map(([id,nm])=>h("button",{type:"button",class:"chip",disabled:pick.length>=4,text:"+ "+nm,onclick:()=>{pick.push(id);draw();}})))));
-    save.disabled=pick.length!==4;};
+    const rest=navPinnable().filter(c=>!pick.includes(c[0])),full=L.max&&pick.length>=L.max;
+    if(rest.length)box.append(h("div",{class:"field"},h("span",{class:"lbl",text:L.max?(pick.length<L.max?"Add "+(L.max-pick.length)+" more":"Remove one to add another"):"Add to the sidebar"}),
+      h("div",{class:"row"},rest.map(([id,nm])=>h("button",{type:"button",class:"chip",disabled:!!full,text:"+ "+nm,onclick:()=>{pick.push(id);draw();}})))));
+    save.disabled=!!L.max&&pick.length!==L.max;};
   const save=h("button",{class:"btn primary",text:"Save"}),cancel=h("button",{class:"btn ghost",text:"Cancel"});
-  const close=openSheet([h("h3",{text:"Bottom bar"}),h("p",{class:"small muted",style:"margin:0 0 6px",text:"Pick the 4 sections you use most. The others are always one tap away in More. This is saved per device."}),box,h("div",{class:"actions"},cancel,save)]);
-  draw();cancel.onclick=close;save.onclick=()=>{lsSet("planner.nav",JSON.stringify(pick));buildNav();close();render();};
+  const close=openSheet([h("h3",{text:which==="phone"?"Bottom bar":"Sidebar"}),
+    h("p",{class:"small muted",style:"margin:0 0 6px",text:(which==="phone"?"Pick the 4 pages you use most, in the order you want them.":"Pick the pages to show in the laptop sidebar, in your order. Number keys 1 to 9 follow this order.")+" Everything else stays one tap away in More."+(Store.user?" Saved to your account.":"")}),
+    preview,box,h("div",{class:"actions"},cancel,save)]);
+  draw();cancel.onclick=close;save.onclick=()=>{Store.settings({[L.key]:pick});buildNav();close();render();};
 }

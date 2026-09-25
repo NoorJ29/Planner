@@ -237,7 +237,8 @@ function renderSettings(main){
     row("Currency",currencyLabel(),currencyButton()),
     row("Task lists",plural(SET.lists.length,"list"),h("button",{class:"chip",text:"Edit",onclick:openLists})),
     row("Home screen widgets","Choose what the Home tab shows",h("button",{class:"chip",text:"Customise",onclick:openDashEditor})),
-    row("Bottom bar (phone)",["Home",...navChoice().map(id=>NAV_CHOICES.find(c=>c[0]===id)[1]),"More"].join(", "),h("button",{class:"chip",text:"Change",onclick:openNavEditor})),
+    row("Bottom bar (phone)",navFull("phone").map(navName).join(", "),h("button",{class:"chip",text:"Change",onclick:()=>openNavEditor("phone")})),
+    row("Sidebar (laptop)",navFull("desk").map(navName).join(", "),h("button",{class:"chip",text:"Change",onclick:()=>openNavEditor("desk")})),
     row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))),
     row("App version",Updates.version||"Checking…",h("button",{class:"chip",text:"Check for updates",onclick:e=>checkForUpdateNow(e.currentTarget)})))));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
@@ -259,7 +260,7 @@ function renderGuide(main){
     keyRow([["F"]],"Open the focus timer"),
     keyRow([["/"],[CTRL,"K"]],"Search everything"),
     keyRow([["Q"]],"Jump to the quick-add bar"),
-    keyRow([["1"],["2"],["3"],["4"],["5"],["6"],["7"]],"Go to Home, Plan, Habits, Notes, Money, Links, More"),
+    keyRow([["1"],["2"],["…"],["9"]],"Go to the pages in your sidebar, in order ("+navFull("desk").slice(0,9).map(navName).join(", ")+")"),
     keyRow([["T"]],"Jump to today (in Plan)"),
     keyRow([["←"],["→"]],"Previous or next day (in Plan)"),
     keyRow([[CTRL,"Enter"]],"Save the open form"),
@@ -394,7 +395,7 @@ function renderMore(main){
   setHeader("More","Everything else in one place");
   const open=k=>{if(k==="focus"){openFocus();return;}UI.page=k;render();window.scrollTo(0,0);};
   const item=(k,e,t,s,fn)=>h("button",{class:"mi",onclick:fn||(()=>open(k))},h("span",{class:"e",text:e}),h("b",{text:t}),h("span",{text:s}));
-  if(!UI.desktop){const hidden=NAV_CHOICES.filter(c=>!navChoice().includes(c[0]));
+  {const hidden=NAV_CHOICES.filter(c=>!navLayout(UI.desktop?"desk":"phone").includes(c[0]));
     const SEC={plan:["🗓️","Your tasks and calendar"],habits:["🔥","Daily habits and streaks"],notes:["📝","Notes and journal"],money:["💰","Spending and budget"],links:["🔗","Your saved websites"]};
     if(hidden.length)main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:"Sections"}),h("div",{class:"menu"},hidden.map(([id,nm])=>item(id,SEC[id][0],nm,SEC[id][1],()=>goTab(id)))));}
   MENU.forEach(([g,keys])=>{main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:g}),h("div",{class:"menu"},keys.map(k=>k==="focus"?item("focus","⏱️","Focus timer",focusState()?"Session running":"Pomodoro-style focus"):item(k,...PAGES[k]))));});

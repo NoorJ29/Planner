@@ -1,0 +1,70 @@
+from playwright.sync_api import sync_playwright
+MOCK=open("tests/mockfb2.js").read()
+CFG='window.PLANNER_FIREBASE_CONFIG={apiKey:"test",authDomain:"x",projectId:"x",appId:"x"};'
+errs=[]
+def check(label,ok,got=""):
+    print(label,"->","OK" if ok else "FAIL",got)
+    if not ok: errs.append(label+" "+str(got))
+def labels(pg,sel): return pg.locator(sel+" button > span:not(.ico)").all_inner_texts()
+def current(pg,sel): return pg.locator(sel+' button[aria-current="page"]').get_attribute("data-tab")
+def device(ctx,w,h,cfg=CFG):
+    pg=ctx.new_page(); pg.set_viewport_size({"width":w,"height":h}); pg.on("pageerror",lambda e:errs.append(str(e)))
+    pg.route("**/www.gstatic.com/**",lambda r:r.fulfill(body=MOCK if "app-compat" in r.request.url else "",content_type="application/javascript"))
+    pg.route("**/config.js",lambda r:r.fulfill(body=cfg,content_type="application/javascript"))
+    pg.route("**/fonts.googleapis.com/**",lambda r:r.abort())
+    return pg
+def sign_in(pg,create=False):
+    pg.wait_for_selector(".sheet h3"); pg.fill('input[type="email"]',"me@example.com"); pg.fill('input[type="password"]',"secret123")
+    pg.click('.sheet button:has-text("%s")'%("Create account" if create else "Sign in")); pg.wait_for_timeout(700)
+def settings(pg):
+    pg.evaluate("document.activeElement&&document.activeElement.blur()")
+    if pg.viewport_size["width"]<1000: pg.click('#nav button[data-tab="more"]')
+    else: pg.click('#sideNav button[data-tab="more"]')
+    pg.click('.mi:has-text("Settings")'); pg.wait_for_timeout(200)
+with sync_playwright() as p:
+    b=p.chromium.launch(); ctx=b.new_context(service_workers="block")
+    phone=device(ctx,390,844); phone.goto("http://localhost:8765/"); sign_in(phone,create=True)
+    check("1. default bottom bar",labels(phone,"#nav")==["Home","Plan","Habits","Notes","Money","More"],labels(phone,"#nav"))
+    # phone: swap Money for Shopping and move it to the front
+    settings(phone); phone.click('.setrow:has-text("Bottom bar") button')
+    phone.click('.sheet button[aria-label="Remove Money"]')
+    check("2. save needs exactly 4",phone.is_disabled('.sheet .actions button:has-text("Save")'))
+    phone.click('.sheet .chip:has-text("+ Shopping")')
+    for _ in range(3): phone.click('.sheet button[aria-label="Move Shopping up"]')
+    check("2. preview",phone.inner_text(".sheet .navprev")=="Home · Shopping · Plan · Habits · Notes · More",phone.inner_text(".sheet .navprev"))
+    phone.click('.sheet .actions button:has-text("Save")'); phone.wait_for_timeout(300)
+    check("3. new bottom bar",labels(phone,"#nav")==["Home","Shopping","Plan","Habits","Notes","More"],labels(phone,"#nav"))
+    phone.click('#nav button[data-tab="shopping"]'); phone.wait_for_timeout(200)
+    check("3. pinned page opens and is highlighted",phone.inner_text("#bigDate")=="Shopping" and current(phone,"#nav")=="shopping",current(phone,"#nav"))
+    phone.click('#nav button[data-tab="more"]'); phone.wait_for_timeout(200)
+    check("4. Money is listed under Sections in More",phone.locator('.menu .mi:has-text("Money")').count()==1)
+    phone.click('.menu .mi:has-text("Money")'); phone.wait_for_timeout(200)
+    check("4. unpinned section highlights More",current(phone,"#nav")=="more",current(phone,"#nav"))
+    # laptop sidebar: drop Notes and Links, add Profile and Focus timer
+    settings(phone); phone.click('.setrow:has-text("Sidebar") button')
+    phone.click('.sheet button[aria-label="Remove Notes"]'); phone.click('.sheet button[aria-label="Remove Links"]')
+    phone.click('.sheet .chip:has-text("+ Profile")'); phone.click('.sheet .chip:has-text("+ Focus timer")')
+    phone.click('.sheet .actions button:has-text("Save")'); phone.wait_for_timeout(300)
+    check("5. settings summary",phone.inner_text('.setrow:has-text("Sidebar") span')=="Home, Plan, Habits, Money, Profile, Focus, More",phone.inner_text('.setrow:has-text("Sidebar") span'))
+    # a second device signed in to the same account gets both layouts
+    laptop=device(ctx,1400,900); laptop.goto("http://localhost:8765/"); sign_in(laptop); laptop.wait_for_timeout(300)
+    check("6. laptop sidebar synced",labels(laptop,"#sideNav")==["Home","Plan","Habits","Money","Profile","Focus","More"],labels(laptop,"#sideNav"))
+    check("6. shortcut numbers",laptop.locator("#sideNav kbd").all_inner_texts()==["1","2","3","4","5","6","7"],laptop.locator("#sideNav kbd").all_inner_texts())
+    laptop.evaluate("document.activeElement&&document.activeElement.blur()")
+    laptop.keyboard.press("5"); laptop.wait_for_timeout(200)
+    check("7. key 5 opens Profile",laptop.inner_text("#bigDate")=="Profile" and current(laptop,"#sideNav")=="profile",current(laptop,"#sideNav"))
+    laptop.keyboard.press("6"); laptop.wait_for_timeout(300)
+    check("7. key 6 opens the focus timer",laptop.locator(".sheet").count()==1)
+    laptop.keyboard.press("Escape"); laptop.wait_for_timeout(200); laptop.keyboard.press("7"); laptop.wait_for_timeout(200)
+    check("7. key 7 opens More, which lists hidden sections",laptop.inner_text("#bigDate")=="More" and laptop.locator('.menu .mi:has-text("Notes")').count()==1 and laptop.locator('.menu .mi:has-text("Links")').count()==1)
+    laptop.screenshot(path="tests/out/menu_desk.png")
+    laptop.set_viewport_size({"width":390,"height":844}); laptop.wait_for_timeout(300)
+    check("8. phone layout synced too",labels(laptop,"#nav")==["Home","Shopping","Plan","Habits","Notes","More"],labels(laptop,"#nav"))
+    phone.screenshot(path="tests/out/menu_phone.png")
+    # someone who picked a bottom bar on an older version keeps it
+    ctx2=b.new_context(service_workers="block"); old=device(ctx2,390,844,cfg="window.PLANNER_FIREBASE_CONFIG={};")
+    old.add_init_script("""localStorage.setItem('planner.nav','["plan","links","notes","money"]')""")
+    old.goto("http://localhost:8765/"); old.wait_for_timeout(500)
+    check("9. older bottom bar choice kept",labels(old,"#nav")==["Home","Plan","Links","Notes","Money","More"],labels(old,"#nav"))
+    b.close()
+print("ERRORS:",errs)

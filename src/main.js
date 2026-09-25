@@ -10,9 +10,10 @@ function draw(){
   if(tab!=="links")document.body.classList.remove("editing");
   const ae=document.activeElement,refocus=ae&&ae.id&&$("#main").contains(ae)?{id:ae.id,a:ae.selectionStart,b:ae.selectionEnd}:null;
   document.body.classList.toggle("noqa",!qaOn);
-  const phoneTabs=["home",...navChoice(),"more"];const inMore=!phoneTabs.includes(tab);
-  document.querySelectorAll("#nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab||(inMore&&b.dataset.tab==="more")?"page":"false"));
-  document.querySelectorAll("#sideNav button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
+  buildNav(true);
+  const cur=tab==="more"&&UI.page?UI.page:tab;
+  [["#nav","phone"],["#sideNav","desk"]].forEach(([sel,which])=>{const ids=navFull(which),on=ids.includes(cur)?cur:"more";
+    document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on?"page":"false"));});
   document.body.classList.toggle("desk",UI.desktop);
   const main=$("#main");main.textContent="";
   if(!UI.ready){setHeader("Planner","");main.append(h("div",{class:"loading",text:"Loading your planner…"}));return;}
@@ -46,9 +47,13 @@ $("#qaMore").addEventListener("click",()=>{const qi=$("#qaInput");const v=qi.val
 
 /* nav */
 const nav=$("#nav"),sideNav=$("#sideNav");
-function buildNav(){nav.textContent="";["home",...navChoice(),"more"].forEach(t=>{const l=TABS.find(x=>x[0]===t)[1];nav.append(h("button",{"data-tab":t,"aria-label":l,onclick:()=>goTab(t)},ico(t),h("span",{text:l})));});}
+let navBuilt="";
+function buildNav(onlyIfChanged){
+  const sig=JSON.stringify([navFull("phone"),navFull("desk")]);if(onlyIfChanged&&sig===navBuilt)return;navBuilt=sig;
+  nav.textContent="";navFull("phone").forEach(t=>{const l=navName(t);nav.append(h("button",{"data-tab":t,"aria-label":l,onclick:()=>goNav(t)},navIcon(t),h("span",{text:l})));});
+  sideNav.textContent="";navFull("desk").forEach((t,i)=>{sideNav.append(h("button",{"data-tab":t,onclick:()=>goNav(t)},navIcon(t),h("span",{text:navName(t)}),i<9?h("kbd",{text:String(i+1)}):null));});
+}
 buildNav();
-TABS.forEach(([t,l],i)=>{sideNav.append(h("button",{"data-tab":t,onclick:()=>goTab(t)},ico(t),h("span",{text:l}),h("kbd",{text:String(i+1)})));});
 $("#searchBtn").append(ico("search"));$("#searchBtn").addEventListener("click",openSearch);
 $("#sideSearch").prepend(ico("search"));$("#sideSearch").addEventListener("click",openSearch);
 document.querySelectorAll(".sync").forEach(b=>b.addEventListener("click",openAccount));
@@ -77,7 +82,7 @@ document.addEventListener("keydown",e=>{
   const k=e.key;
   if(k==="/"){e.preventDefault();openSearch();}
   else if(k==="n"||k==="N"){e.preventDefault();newInSection();}
-  else if(/^[1-7]$/.test(k))goTab(TABS[Number(k)-1][0]);
+  else if(/^[1-9]$/.test(k)){const id=navFull("desk")[Number(k)-1];if(id)goNav(id);}
   else if(k==="f"||k==="F"){e.preventDefault();openFocus();}
   else if(UI.tab==="plan"&&(k==="t"||k==="T")){UI.stripScroll=null;pickDay(todayKey());}
   else if(UI.tab==="plan"&&(k==="ArrowLeft"||k==="ArrowRight")){e.preventDefault();UI.stripScroll=null;pickDay(key(addDays(fromKey(UI.sel),k==="ArrowLeft"?-1:1)));}

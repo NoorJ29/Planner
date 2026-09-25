@@ -27,6 +27,8 @@ button{cursor:pointer}
 .wrap{max-width:720px;margin:0 auto;padding:20px 18px 200px}
 body.noqa .wrap{padding-bottom:130px}
 .ico{display:inline-flex}
+.ico.emo{width:22px;height:22px;align-items:center;justify-content:center;font-size:18px;line-height:1}
+.navprev{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:var(--sunken);font-weight:600}
 .ico svg{width:22px;height:22px}
 
 /* header */

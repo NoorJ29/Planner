@@ -30,6 +30,7 @@ Each test prints what it checked and ends with `ERRORS: []` when nothing went wr
 - `test_shared_and_calendar.py`: family shared lists (two users) and Google Calendar (`mockgis.js` simulates Google sign-in)
 - `test_laptop_screens.py`: laptop layout screenshots
 - `test_speed.py`: screen switch times with thousands of items
+- `test_menu_layout.py`: choosing and ordering pages in the phone bottom bar and laptop sidebar, number keys, syncing the layout to another device
 - `test_profile.py`: profile button and page: stats, rename (also on shared lists), change password, sign out, delete account
 - `test_update_bar.py`: the "new version is ready" bar and Settings → Check for updates (serves its own copy of the app on port 8766)
 
