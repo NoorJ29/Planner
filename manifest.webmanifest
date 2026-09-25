@@ -1,0 +1,28 @@
+{
+  "name": "Planner",
+  "short_name": "Planner",
+  "description": "Plan your days, build habits, keep notes and track spending, synced across your devices.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF2F0",
+  "theme_color": "#0F7B6C",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Add task", "short_name": "Add task", "url": "./?a=task", "icons": [{"src": "sc-task.png", "sizes": "96x96", "type": "image/png"}]},
+    {"name": "Log expense", "short_name": "Expense", "url": "./?a=expense", "icons": [{"src": "sc-expense.png", "sizes": "96x96", "type": "image/png"}]},
+    {"name": "New note", "short_name": "Note", "url": "./?a=note", "icons": [{"src": "sc-note.png", "sizes": "96x96", "type": "image/png"}]},
+    {"name": "Today's journal", "short_name": "Journal", "url": "./?a=journal", "icons": [{"src": "sc-journal.png", "sizes": "96x96", "type": "image/png"}]}
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {"title": "title", "text": "text", "url": "url"}
+  }
+}
