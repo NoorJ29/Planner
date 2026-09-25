@@ -1,0 +1,3 @@
+tests/libs/
+tests/out/
+__pycache__/

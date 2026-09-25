@@ -1,0 +1,1 @@
+window.google={accounts:{oauth2:{initTokenClient(o){return{requestAccessToken(){window.__gisCalls=(window.__gisCalls||0)+1;setTimeout(()=>o.callback({access_token:"tok123",expires_in:3600}),30);}};},revoke(){}}}};

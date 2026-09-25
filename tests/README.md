@@ -1,0 +1,34 @@
+# Tests
+
+Browser tests using Playwright. Run them from the project root (the folder containing `index.html`).
+
+## One-time setup
+```
+pip install playwright
+python -m playwright install chromium
+cd tests && mkdir -p libs && cd libs && npm init -y && npm i jspdf@2.5.1 jszip@3.10.1 && cd ../..
+```
+
+## Run
+1. Build and start a local server in one terminal:
+   ```
+   python3 build.py
+   python3 -m http.server 8765
+   ```
+2. In another terminal, run any test:
+   ```
+   python3 tests/test_core_features.py
+   ```
+Each test prints what it checked and ends with `ERRORS: []` when nothing went wrong. Screenshots go to `tests/out/`.
+
+## What each test covers
+- `test_core_features.py`: tasks, repeats, schedule drag, habits, notes, journal, PDF/Word export, money, goals, shopping, review, backup/restore, shortcuts, share target
+- `test_two_device_sync.py`: phone + laptop syncing through a simulated Firebase (`mockfb2.js`)
+- `test_links.py`: Links section, categories, open all, pop-up blocking, edit mode
+- `test_guide_currency.py`: Guide page and currency picker
+- `test_new_features.py`: smart quick add, focus timer, templates, countdowns, subscriptions, insights, home customisation, bottom bar, app lock
+- `test_shared_and_calendar.py`: family shared lists (two users) and Google Calendar (`mockgis.js` simulates Google sign-in)
+- `test_laptop_screens.py`: laptop layout screenshots
+- `test_speed.py`: screen switch times with thousands of items
+
+The simulations can't check the real Firebase security rules or real Google servers. Test those by hand after deploying.

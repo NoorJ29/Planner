@@ -8,3 +8,6 @@ window.PLANNER_FIREBASE_CONFIG = {
   messagingSenderId: "626822243033",
   appId: "1:626822243033:web:7512babe4a0131949154c8"
 };
+
+// Optional: Google Calendar (setup guide, step 6). Leave empty to skip.
+window.PLANNER_GOOGLE_CLIENT_ID = "";

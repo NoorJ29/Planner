@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planner</title>
+<meta name="theme-color" content="#0F7B6C">
+<meta name="description" content="Plan your days, build habits, keep notes and track spending, synced across your devices.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+<script src="config.js"></script>
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<aside class="side" aria-label="Sidebar">
+  <div class="brand"><img src="icon-192.png" alt="" width="34" height="34"><b>Planner</b></div>
+  <button class="side-search" id="sideSearch"><span>Search</span><kbd>/</kbd></button>
+  <nav class="side-nav" id="sideNav" aria-label="Sections"></nav>
+  <div class="side-foot">
+    <button class="sync" aria-label="Sync and account"><i></i><span>Starting…</span></button>
+    <button class="side-guide" id="sideGuide">📖 Guide and shortcuts <kbd>?</kbd></button>
+  </div>
+</aside>
+<div class="wrap">
+  <header class="top">
+    <div class="ttl"><h1 class="date-big" id="bigDate">Planner</h1><div class="date-sub" id="subDate"></div></div>
+    <div class="hact">
+      <button class="hbtn" id="searchBtn" aria-label="Search"></button>
+      <button class="sync" id="sync" aria-label="Sync and account"><i></i><span>Starting…</span></button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+<button class="fpill" id="focusPill" hidden aria-label="Open focus timer"><i></i><b>25:00</b><span>Focus</span></button>
+<div class="dock">
+  <div class="qahint" id="qaHint" hidden aria-live="polite"></div>
+  <form class="qa" id="qaForm" autocomplete="off">
+    <input id="qaInput" placeholder="Add a task" aria-label="Quick add">
+    <button type="button" class="more" id="qaMore" aria-label="Add with details">＋</button>
+    <button type="submit" class="add">Add</button>
+  </form>
+  <nav class="nav" id="nav" aria-label="Sections"></nav>
+</div>
+<script>
+(function(){
+"use strict";
+/*JS*/
+})();
+</script>
+</body>
+</html>
