@@ -322,7 +322,7 @@ select.inp{appearance:auto}
 .frow{margin-top:12px}
 .deepsw{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer}
 .deepsw input{width:18px;height:18px;accent-color:var(--accent)}
-.flayout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start}
+.flayout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:22px;align-items:start}
 .ftree{position:sticky;top:16px;margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px;max-height:calc(100vh - 40px);overflow:auto}
 .frow2{display:flex;align-items:center;gap:2px;padding-left:calc(var(--d) * 14px)}
 .ftog{width:22px;height:28px;flex:0 0 auto;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:0;border-radius:6px;transition:transform .15s}
@@ -1374,7 +1374,7 @@ function renderNoteFolder(main,nn){
     if(shown.length<list.length)body.append(h("button",{class:"linkbtn",text:"Show all "+list.length,onclick:()=>{UI.expanded.add("notes");render();}}));
   }
   if(!UI.desktop){main.append(body);return;}
-  main.append(h("div",{class:"flayout"},folderTreeNav(cf),body));
+  main.append(h("div",{class:"flayout"},body,folderTreeNav(cf)));
 }
 function folderTreeNav(cf){
   const box=h("nav",{class:"ftree","aria-label":"Folder tree"});

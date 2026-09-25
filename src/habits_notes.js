@@ -133,7 +133,7 @@ function renderNoteFolder(main,nn){
     if(shown.length<list.length)body.append(h("button",{class:"linkbtn",text:"Show all "+list.length,onclick:()=>{UI.expanded.add("notes");render();}}));
   }
   if(!UI.desktop){main.append(body);return;}
-  main.append(h("div",{class:"flayout"},folderTreeNav(cf),body));
+  main.append(h("div",{class:"flayout"},body,folderTreeNav(cf)));
 }
 function folderTreeNav(cf){
   const box=h("nav",{class:"ftree","aria-label":"Folder tree"});
