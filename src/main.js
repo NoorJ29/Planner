@@ -11,6 +11,7 @@ function draw(){
   const ae=document.activeElement,refocus=ae&&ae.id&&$("#main").contains(ae)?{id:ae.id,a:ae.selectionStart,b:ae.selectionEnd}:null;
   document.body.classList.toggle("noqa",!qaOn);
   buildNav(true);
+  $("#homeCustom").hidden=tab!=="home"||!UI.ready;
   const cur=tab==="more"&&UI.page?UI.page:tab;
   [["#nav","phone"],["#sideNav","desk"]].forEach(([sel,which])=>{const ids=navFull(which),on=ids.includes(cur)?cur:"more";
     document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on&&!(which==="desk"&&cur==="settings")?"page":"false"));});
@@ -55,6 +56,7 @@ function buildNav(onlyIfChanged){
   sideNav.textContent="";navFull("desk").forEach((t,i)=>{sideNav.append(h("button",{"data-tab":t,onclick:()=>goNav(t)},navIcon(t),h("span",{text:navName(t)}),i<9?h("kbd",{text:String(i+1)}):null));});
 }
 buildNav();
+$("#homeCustom").append(ico("sliders"));$("#homeCustom").addEventListener("click",()=>openDashEditor());
 $("#searchBtn").append(ico("search"));$("#searchBtn").addEventListener("click",openSearch);
 $("#sideSearch").prepend(ico("search"));$("#sideSearch").addEventListener("click",openSearch);
 document.querySelectorAll(".sync").forEach(b=>b.addEventListener("click",openAccount));

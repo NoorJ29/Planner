@@ -424,7 +424,8 @@ button:active{transform:scale(.97)}
   body.desk .wrap{max-width:none;margin:0 0 0 240px;padding:34px 48px 150px}
   body.desk.noqa .wrap{padding-bottom:60px}
   body.desk .top,body.desk main{max-width:1180px;margin-left:auto;margin-right:auto}
-  body.desk .hact{display:none}
+  body.desk .hact #sync,body.desk .hrow > :not(#homeCustom){display:none}
+  body.desk .top{align-items:center}
   body.desk .date-big{font-size:48px}
   body.desk .nav{display:none}
   body.desk.noqa .dock{display:none}
@@ -716,6 +717,17 @@ button.nfile{font:inherit;font-size:.9em}
 .side-install{width:100%;height:40px;margin-bottom:4px}
 .isteps{margin:0 0 12px;padding-left:22px;display:flex;flex-direction:column;gap:8px}
 .isteps li{padding-left:4px}
+/* compact rows on the phone's Home */
+.task.compact{align-items:center;padding:9px 12px;gap:10px}
+.task.compact .check{flex-basis:22px;width:22px;height:22px;margin-top:0}
+.task.compact .ttitle{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctime{font-size:13px;font-weight:600;color:var(--accent);white-space:nowrap}
+body:not(.desk) .nrow{padding:6px 4px}
+/* hover labels for icon buttons */
+@media (hover:hover){
+  [data-tip]{position:relative}
+  [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:6px 10px;border-radius:9px;white-space:nowrap;box-shadow:var(--shadow);z-index:10;pointer-events:none}
+}
 
 </style>
 </head>
@@ -737,7 +749,7 @@ button.nfile{font:inherit;font-size:.9em}
   <header class="top">
     <div class="ttl"><h1 class="date-big" id="bigDate">Nova</h1><div class="date-sub" id="subDate"></div></div>
     <div class="hact">
-      <div class="hrow"><button class="installbtn" id="installBtn" hidden aria-label="Install Nova"><span aria-hidden="true">⬇</span> Install</button><button class="hbtn" id="searchBtn" aria-label="Search"></button></div>
+      <div class="hrow"><button class="installbtn" id="installBtn" hidden aria-label="Install Nova"><span aria-hidden="true">⬇</span> Install</button><button class="hbtn" id="homeCustom" hidden aria-label="Customise home" data-tip="Customise home"></button><button class="hbtn" id="searchBtn" aria-label="Search"></button></div>
       <button class="sync" id="sync" aria-label="Sync and account"><b class="pav" aria-hidden="true"><em></em><i></i></b><span>Starting…</span></button>
     </div>
   </header>
@@ -775,6 +787,7 @@ const ICONS={
   links:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>',
   more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
   person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.4-3.8 4.3-5.8 7.5-5.8s6.1 2 7.5 5.8"/></svg>',
+  sliders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'
 };
 
@@ -1086,6 +1099,9 @@ function taskRow(t,opts){
   if(t.remind!==""&&t.remind!=null&&!t.done)meta.push(h("span",{text:"🔔","aria-label":"Reminder set"}));
   {const fm=taskFocus(t.id);if(fm)meta.push(h("span",{text:"⏱ "+hmins(fm)}));}
   if(t.goalId&&D.goals.has(t.goalId))meta.push(h("span",{text:"🎯 "+D.goals.get(t.goalId).title}));
+  if(opts.compact)return h("li",{class:"task compact"+(t.done?" done":"")},cb, // one line: title, then time
+    h("button",{class:"tbody",onclick:()=>openTask(t)},h("span",{class:"ttitle",text:t.title})),t.time?h("span",{class:"ctime",text:fmtTime(t.time)}):null,
+    t.priority?h("span",{class:"pri"+(t.priority===2?" p2":""),text:t.priority===2?"!!":"!"}):null);
   return h("li",{class:"task"+(t.done?" done":"")},cb,
     h("button",{class:"tbody",onclick:()=>openTask(t)},h("span",{class:"ttitle",text:t.title}),meta.length?h("span",{class:"meta"},meta):null),
     t.priority?h("span",{class:"pri"+(t.priority===2?" p2":""),title:t.priority===2?"Urgent":"Important",text:t.priority===2?"!!":"!"}):null);
@@ -2335,7 +2351,7 @@ function renderGuide(main){
     tipRow("🔗","Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
     tipRow("📤","Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
     tipRow("💰","Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
-    tipRow("🏠","Home screen","Tap Customise on Home to choose widgets, make them small or large, and reorder them."),
+    tipRow("🏠","Home screen","Tap the sliders button at the top of Home to choose widgets, make them small or large, and reorder them."),
     tipRow("⏱️","Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
     tipRow("🔁","Subscriptions","Add regular payments in Money. They're logged automatically when due, with an optional reminder."),
     tipRow("👨‍👩‍👧","Shared lists","In More, Shared lists, create a list and tap Invite. Family join with the code and see changes instantly."),
@@ -3330,11 +3346,11 @@ const W={
     const over=vals("tasks").filter(t=>!t.done&&t.date&&t.date<todayKey()).length;
     if(size==="compact")return stat(String(open.length),open.length===1?"task left today":"tasks left today"+(over?", "+over+" overdue":""),()=>goTab("plan"));
     return h("div",null,items.length?h("div",{class:"small muted",style:"margin-bottom:8px",text:done+" of "+items.length+" done"+(over?", "+over+" overdue":"")}):null,items.length?bar(done/items.length):null,
-      open.length?h("ul",{class:"tasks",style:"margin-top:10px"},open.slice(0,5).map(t=>taskRow(t))):h("p",{class:"muted small",text:items.length?"All done for today. Nice!":"Nothing planned today."}),
+      open.length?h("ul",{class:"tasks",style:"margin-top:10px"},open.slice(0,5).map(t=>taskRow(t,{compact:!UI.desktop}))):h("p",{class:"muted small",text:items.length?"All done for today. Nice!":"Nothing planned today."}),
       open.length>5?h("button",{class:"linkbtn",text:"+"+(open.length-5)+" more",onclick:()=>goTab("plan")}):null);},
   next(size){const n=nextUp(size==="compact"?1:4);
     if(size==="compact")return n.length?stat(fmtTime(n[0].time),n[0].title,()=>goTab("plan")):stat("–","Nothing else scheduled");
-    return n.length?h("div",{class:"nlist"},n.map(x=>h(x.ev?"a":"button",x.ev?{class:"nrow",href:x.ev.link,target:"_blank",rel:"noopener noreferrer"}:{class:"nrow",onclick:()=>openTask(x.task)},h("span",{class:"ntime",text:(x.k===todayKey()?"":"Tmrw ")+fmtTime(x.time)}),h("span",{class:"ntitle",text:x.title}),x.ev?h("span",{class:"small muted",text:"Google"}):null))):h("p",{class:"muted small",text:"Nothing else scheduled today or tomorrow."});},
+    return n.length?h("div",{class:"nlist"},n.map(x=>h(x.ev?"a":"button",x.ev?{class:"nrow",href:x.ev.link,target:"_blank",rel:"noopener noreferrer"}:{class:"nrow",onclick:()=>openTask(x.task)},h("span",{class:"ntime",text:(x.k===todayKey()?"":"Tmrw ")+fmtTime(x.time)}),h("span",{class:"ntitle",text:x.title}),x.ev&&UI.desktop?h("span",{class:"small muted",text:"Google"}):null))):h("p",{class:"muted small",text:"Nothing else scheduled today or tomorrow."});},
   habits(size){const now=new Date(),tk=todayKey(),hs=vals("habits").filter(x=>!x.archived&&habitDue(x,now)),d=hs.filter(x=>x.log&&x.log[tk]).length;
     if(size==="compact")return stat(d+"/"+hs.length,"habits done today",()=>goTab("habits"));
     if(!hs.length)return h("p",{class:"muted small",text:"No habits due today."});
@@ -3377,10 +3393,10 @@ const WGO={today:()=>goTab("plan"),next:()=>goTab("plan"),habits:()=>goTab("habi
 function renderHome(main){
   const d=new Date();setHeader(greeting(),d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}));
   const chip=gcalStaleChip();
-  main.append(h("div",{class:"row",style:"margin-top:14px;justify-content:space-between"},chip||h("span"),h("button",{class:"chip",text:"✎ Customise",onclick:openDashEditor})));
+  if(chip)main.append(h("div",{class:"row",style:"margin-top:14px"},chip)); // Customise is the sliders button next to search
   const grid=h("div",{class:"dash"});
   dashConfig().filter(w=>w.size!=="off").forEach(w=>{try{grid.append(wcard(w.id,w.size,W[w.id](w.size),WGO[w.id]));}catch(e){console.error(e);}});
-  if(!grid.children.length)grid.append(h("div",{class:"empty",style:"grid-column:1/-1",text:"Your home screen is empty. Tap Customise to add widgets."}));
+  if(!grid.children.length)grid.append(h("div",{class:"empty",style:"grid-column:1/-1",text:"Your home screen is empty. Tap the sliders button at the top to add widgets."}));
   main.append(grid);
   gcalEnsure(todayKey().slice(0,7));
 }
@@ -3442,6 +3458,7 @@ function draw(){
   const ae=document.activeElement,refocus=ae&&ae.id&&$("#main").contains(ae)?{id:ae.id,a:ae.selectionStart,b:ae.selectionEnd}:null;
   document.body.classList.toggle("noqa",!qaOn);
   buildNav(true);
+  $("#homeCustom").hidden=tab!=="home"||!UI.ready;
   const cur=tab==="more"&&UI.page?UI.page:tab;
   [["#nav","phone"],["#sideNav","desk"]].forEach(([sel,which])=>{const ids=navFull(which),on=ids.includes(cur)?cur:"more";
     document.querySelectorAll(sel+" button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===on&&!(which==="desk"&&cur==="settings")?"page":"false"));});
@@ -3486,6 +3503,7 @@ function buildNav(onlyIfChanged){
   sideNav.textContent="";navFull("desk").forEach((t,i)=>{sideNav.append(h("button",{"data-tab":t,onclick:()=>goNav(t)},navIcon(t),h("span",{text:navName(t)}),i<9?h("kbd",{text:String(i+1)}):null));});
 }
 buildNav();
+$("#homeCustom").append(ico("sliders"));$("#homeCustom").addEventListener("click",()=>openDashEditor());
 $("#searchBtn").append(ico("search"));$("#searchBtn").addEventListener("click",openSearch);
 $("#sideSearch").prepend(ico("search"));$("#sideSearch").addEventListener("click",openSearch);
 document.querySelectorAll(".sync").forEach(b=>b.addEventListener("click",openAccount));
@@ -3593,7 +3611,7 @@ document.querySelectorAll(".installbtn").forEach(b=>b.addEventListener("click",i
 updateInstallUI();
 
 /* app updates. APP_VERSION is written in by build.py from sw.js; the newest version is read from sw.js on the server. */
-const APP_VERSION=Number("19")||0;
+const APP_VERSION=Number("20")||0;
 const Updates={reg:null,latest:0,checked:0,state:""}; // state: "" | "checking" | "offline" | "error"
 const updateReady=()=>Updates.latest>APP_VERSION;
 async function latestVersion(){const r=await fetch("./sw.js?check="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);

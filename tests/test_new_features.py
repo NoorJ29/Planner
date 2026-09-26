@@ -61,7 +61,7 @@ with sync_playwright() as p:
     pg.click('#nav button[data-tab="home"]'); pg.wait_for_timeout(300)
     print("home widgets:",pg.locator(".wdg .wdh b").all_inner_texts())
     pg.screenshot(path="tests/out/n_home.png",full_page=True)
-    pg.click('button:has-text("Customise")'); pg.wait_for_timeout(200)
+    pg.click("#homeCustom"); pg.wait_for_timeout(200)
     pg.locator('.dashrow:has-text("Quick links") .seg button:has-text("Off")').click()
     pg.locator('.dashrow:has-text("Countdowns") button[aria-label="Move up"]').click(); pg.locator('.dashrow:has-text("Countdowns") button[aria-label="Move up"]').click()
     pg.locator('.dashrow:has-text("Goals") .seg button:has-text("Small")').click()

@@ -51,6 +51,9 @@ function taskRow(t,opts){
   if(t.remind!==""&&t.remind!=null&&!t.done)meta.push(h("span",{text:"🔔","aria-label":"Reminder set"}));
   {const fm=taskFocus(t.id);if(fm)meta.push(h("span",{text:"⏱ "+hmins(fm)}));}
   if(t.goalId&&D.goals.has(t.goalId))meta.push(h("span",{text:"🎯 "+D.goals.get(t.goalId).title}));
+  if(opts.compact)return h("li",{class:"task compact"+(t.done?" done":"")},cb, // one line: title, then time
+    h("button",{class:"tbody",onclick:()=>openTask(t)},h("span",{class:"ttitle",text:t.title})),t.time?h("span",{class:"ctime",text:fmtTime(t.time)}):null,
+    t.priority?h("span",{class:"pri"+(t.priority===2?" p2":""),text:t.priority===2?"!!":"!"}):null);
   return h("li",{class:"task"+(t.done?" done":"")},cb,
     h("button",{class:"tbody",onclick:()=>openTask(t)},h("span",{class:"ttitle",text:t.title}),meta.length?h("span",{class:"meta"},meta):null),
     t.priority?h("span",{class:"pri"+(t.priority===2?" p2":""),title:t.priority===2?"Urgent":"Important",text:t.priority===2?"!!":"!"}):null);

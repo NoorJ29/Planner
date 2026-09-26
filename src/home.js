@@ -25,11 +25,11 @@ const W={
     const over=vals("tasks").filter(t=>!t.done&&t.date&&t.date<todayKey()).length;
     if(size==="compact")return stat(String(open.length),open.length===1?"task left today":"tasks left today"+(over?", "+over+" overdue":""),()=>goTab("plan"));
     return h("div",null,items.length?h("div",{class:"small muted",style:"margin-bottom:8px",text:done+" of "+items.length+" done"+(over?", "+over+" overdue":"")}):null,items.length?bar(done/items.length):null,
-      open.length?h("ul",{class:"tasks",style:"margin-top:10px"},open.slice(0,5).map(t=>taskRow(t))):h("p",{class:"muted small",text:items.length?"All done for today. Nice!":"Nothing planned today."}),
+      open.length?h("ul",{class:"tasks",style:"margin-top:10px"},open.slice(0,5).map(t=>taskRow(t,{compact:!UI.desktop}))):h("p",{class:"muted small",text:items.length?"All done for today. Nice!":"Nothing planned today."}),
       open.length>5?h("button",{class:"linkbtn",text:"+"+(open.length-5)+" more",onclick:()=>goTab("plan")}):null);},
   next(size){const n=nextUp(size==="compact"?1:4);
     if(size==="compact")return n.length?stat(fmtTime(n[0].time),n[0].title,()=>goTab("plan")):stat("–","Nothing else scheduled");
-    return n.length?h("div",{class:"nlist"},n.map(x=>h(x.ev?"a":"button",x.ev?{class:"nrow",href:x.ev.link,target:"_blank",rel:"noopener noreferrer"}:{class:"nrow",onclick:()=>openTask(x.task)},h("span",{class:"ntime",text:(x.k===todayKey()?"":"Tmrw ")+fmtTime(x.time)}),h("span",{class:"ntitle",text:x.title}),x.ev?h("span",{class:"small muted",text:"Google"}):null))):h("p",{class:"muted small",text:"Nothing else scheduled today or tomorrow."});},
+    return n.length?h("div",{class:"nlist"},n.map(x=>h(x.ev?"a":"button",x.ev?{class:"nrow",href:x.ev.link,target:"_blank",rel:"noopener noreferrer"}:{class:"nrow",onclick:()=>openTask(x.task)},h("span",{class:"ntime",text:(x.k===todayKey()?"":"Tmrw ")+fmtTime(x.time)}),h("span",{class:"ntitle",text:x.title}),x.ev&&UI.desktop?h("span",{class:"small muted",text:"Google"}):null))):h("p",{class:"muted small",text:"Nothing else scheduled today or tomorrow."});},
   habits(size){const now=new Date(),tk=todayKey(),hs=vals("habits").filter(x=>!x.archived&&habitDue(x,now)),d=hs.filter(x=>x.log&&x.log[tk]).length;
     if(size==="compact")return stat(d+"/"+hs.length,"habits done today",()=>goTab("habits"));
     if(!hs.length)return h("p",{class:"muted small",text:"No habits due today."});
@@ -72,10 +72,10 @@ const WGO={today:()=>goTab("plan"),next:()=>goTab("plan"),habits:()=>goTab("habi
 function renderHome(main){
   const d=new Date();setHeader(greeting(),d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}));
   const chip=gcalStaleChip();
-  main.append(h("div",{class:"row",style:"margin-top:14px;justify-content:space-between"},chip||h("span"),h("button",{class:"chip",text:"✎ Customise",onclick:openDashEditor})));
+  if(chip)main.append(h("div",{class:"row",style:"margin-top:14px"},chip)); // Customise is the sliders button next to search
   const grid=h("div",{class:"dash"});
   dashConfig().filter(w=>w.size!=="off").forEach(w=>{try{grid.append(wcard(w.id,w.size,W[w.id](w.size),WGO[w.id]));}catch(e){console.error(e);}});
-  if(!grid.children.length)grid.append(h("div",{class:"empty",style:"grid-column:1/-1",text:"Your home screen is empty. Tap Customise to add widgets."}));
+  if(!grid.children.length)grid.append(h("div",{class:"empty",style:"grid-column:1/-1",text:"Your home screen is empty. Tap the sliders button at the top to add widgets."}));
   main.append(grid);
   gcalEnsure(todayKey().slice(0,7));
 }

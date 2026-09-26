@@ -407,7 +407,8 @@ button:active{transform:scale(.97)}
   body.desk .wrap{max-width:none;margin:0 0 0 240px;padding:34px 48px 150px}
   body.desk.noqa .wrap{padding-bottom:60px}
   body.desk .top,body.desk main{max-width:1180px;margin-left:auto;margin-right:auto}
-  body.desk .hact{display:none}
+  body.desk .hact #sync,body.desk .hrow > :not(#homeCustom){display:none}
+  body.desk .top{align-items:center}
   body.desk .date-big{font-size:48px}
   body.desk .nav{display:none}
   body.desk.noqa .dock{display:none}
@@ -699,3 +700,14 @@ button.nfile{font:inherit;font-size:.9em}
 .side-install{width:100%;height:40px;margin-bottom:4px}
 .isteps{margin:0 0 12px;padding-left:22px;display:flex;flex-direction:column;gap:8px}
 .isteps li{padding-left:4px}
+/* compact rows on the phone's Home */
+.task.compact{align-items:center;padding:9px 12px;gap:10px}
+.task.compact .check{flex-basis:22px;width:22px;height:22px;margin-top:0}
+.task.compact .ttitle{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctime{font-size:13px;font-weight:600;color:var(--accent);white-space:nowrap}
+body:not(.desk) .nrow{padding:6px 4px}
+/* hover labels for icon buttons */
+@media (hover:hover){
+  [data-tip]{position:relative}
+  [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:6px 10px;border-radius:9px;white-space:nowrap;box-shadow:var(--shadow);z-index:10;pointer-events:none}
+}

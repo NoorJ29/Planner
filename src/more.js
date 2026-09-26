@@ -307,7 +307,7 @@ function renderGuide(main){
     tipRow("🔗","Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
     tipRow("📤","Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
     tipRow("💰","Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
-    tipRow("🏠","Home screen","Tap Customise on Home to choose widgets, make them small or large, and reorder them."),
+    tipRow("🏠","Home screen","Tap the sliders button at the top of Home to choose widgets, make them small or large, and reorder them."),
     tipRow("⏱️","Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
     tipRow("🔁","Subscriptions","Add regular payments in Money. They're logged automatically when due, with an optional reminder."),
     tipRow("👨‍👩‍👧","Shared lists","In More, Shared lists, create a list and tap Invite. Family join with the code and see changes instantly."),

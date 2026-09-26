@@ -37,6 +37,7 @@ Each test prints what it checked and ends with `ERRORS: []` when nothing went wr
 - `test_rich_notes.py`: note/journal formatting: toolbar, typing shortcuts, checkboxes, tables, links, colours in light and dark, paste and tampered-data safety, Word/PDF export, syncing, read-only offline view, size limit
 - `test_attachments.py`: pictures and files in notes: resizing, splitting into parts, 5 MB limit, safe opening (HTML/SVG download only), paste, cleanup, other device, Word/PDF pictures, account deletion (needs `pip install pillow`)
 - `test_profile.py`: profile button and page: stats, rename (also on shared lists), change password, sign out, delete account
+- `test_home_layout.py`: Customise icon next to search (phone) and top right with hover label (laptop), one-line task rows on the phone Home
 - `test_install.py`: Install button on phone and laptop, real install prompt, per-browser steps (Android, iPhone, laptop), hidden inside the installed app
 - `test_update_bar.py`: the "new version is ready" bar and Settings → Check for updates (serves its own copy of the app on port 8766)
 
