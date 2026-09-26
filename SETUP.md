@@ -1,4 +1,4 @@
-# Setting up your Planner app
+# Setting up your Nova app
 
 This takes about 30 minutes, and you only do it once. Do it on your laptop. Everything is free.
 
@@ -37,7 +37,7 @@ Before you start, unzip `planner.zip` into a folder. You'll need these files:
 
 1. In Firebase, click the **gear icon** (top left, next to "Project Overview") and choose **Project settings**.
 2. Scroll down to **Your apps** and click the **`</>`** (Web) icon.
-3. Name the app `Planner`. Leave "Firebase Hosting" unticked, then click **Register app**.
+3. Name the app `Nova`. Leave "Firebase Hosting" unticked, then click **Register app**.
 4. Firebase shows a block of code containing `const firebaseConfig = { apiKey: "...", ... }`. Keep that page open.
 5. Open `config.js` in a text editor such as Notepad or TextEdit.
 6. Replace each `PASTE_...` value with the matching value from Firebase. Keep the quote marks. It should end up looking like this, with your own values:
@@ -92,24 +92,24 @@ It's fine for these values to be public. The rules you set in Step 1 are what ke
 2. Tap **Sign in** and use the same email and password.
 3. Tap **⋮ → Install app**. On some phones it says **Add to Home screen → Install**.
 
-The Planner icon now appears in your app drawer. It opens full-screen and works offline. Anything you change on one device appears on the other within a few seconds.
+The Nova icon now appears in your app drawer. It opens full-screen and works offline. Anything you change on one device appears on the other within a few seconds.
 
 ---
 
 ## Step 6 (optional): Connect Google Calendar
 
-This lets Planner show your Google Calendar events and add tasks to your calendar, so you get Google's reliable phone alarms. It takes about 10 minutes and is free. Skip it if you don't need it.
+This lets Nova show your Google Calendar events and add tasks to your calendar, so you get Google's reliable phone alarms. It takes about 10 minutes and is free. Skip it if you don't need it.
 
 1. Go to **console.cloud.google.com** and sign in with the Google account whose calendar you use.
 2. At the top, click the project picker, then **New project**. Name it `planner` and click **Create**. Make sure it's selected afterwards.
 3. **Turn on the Calendar API:** search the top bar for **Google Calendar API**, open it, and click **Enable**.
 4. **Set up the consent screen:**
    1. Go to **APIs & Services → OAuth consent screen** (it may be called **Google Auth Platform → Branding**). Click **Get started**.
-   2. App name: `Planner`. Support email: your email. Audience: **External**. Contact email: your email. Finish and **Create**.
+   2. App name: `Nova`. Support email: your email. Audience: **External**. Contact email: your email. Finish and **Create**.
    3. Open **Audience** (or **Test users**) and click **Add users**. Add your own email, plus any family members who want to connect their calendars.
 5. **Create the client ID:**
    1. Go to **APIs & Services → Credentials** (or **Clients**) and click **Create credentials → OAuth client ID**.
-   2. Application type: **Web application**. Name: `Planner`.
+   2. Application type: **Web application**. Name: `Nova`.
    3. Under **Authorized JavaScript origins**, click **Add URI** and enter `https://yourname.github.io` (your GitHub Pages address without `/planner/`).
    4. Click **Create**, then copy the **Client ID**. It ends in `.apps.googleusercontent.com`.
 6. Open `config.js` and paste it between the quotes on the last line:
@@ -119,7 +119,7 @@ This lets Planner show your Google Calendar events and add tasks to your calenda
    ```
 
 7. Upload `config.js` to GitHub again (see "Updating the app" below).
-8. In Planner, go to **More → Settings → Calendar → Connect**. Google shows a warning that the app isn't verified. That's expected for your own personal app: tap **Continue**, then allow access.
+8. In Nova, go to **More → Settings → Calendar → Connect**. Google shows a warning that the app isn't verified. That's expected for your own personal app: tap **Continue**, then allow access.
 
 **Good to know about Google Calendar:**
 - For security, browsers only keep Google's permission for about an hour. After that, Plan and Home show a **Tap to refresh Google Calendar** button. Your events stay visible in the meantime.
@@ -127,14 +127,14 @@ This lets Planner show your Google Calendar events and add tasks to your calenda
 
 ## Step 7: Shared family lists
 
-Shared lists use extra security rules. If you set up Planner before this feature existed, update the rules once:
+Shared lists use extra security rules. If you set up Nova before this feature existed, update the rules once:
 
 1. In Firebase, go to **Firestore Database → Rules**.
 2. Replace everything with the contents of the new `firestore.rules` file and click **Publish**.
 
 Then, to share:
 - **You:** More → Shared lists → New shared list → **Invite**. Send the code or link.
-- **Family:** install Planner from the same address (yourname.github.io/planner), create their own account, then open your link, or go to More → Shared lists → **Join with a code**.
+- **Family:** install Nova from the same address (yourname.github.io/planner), create their own account, then open your link, or go to More → Shared lists → **Join with a code**.
 
 Everyone only sees the lists they've joined. Their personal tasks, notes and money stay private.
 
@@ -142,8 +142,8 @@ Everyone only sees the lists they've joined. Their personal tasks, notes and mon
 
 - **Smart quick add:** type naturally in Plan, like “Gym tomorrow 6pm for 1h #personal !”. Chips above the bar show what was understood.
 - **App lock:** set a PIN in More → Settings → Privacy. If you forget it, sign in with your account password to reset it.
-- **Quick actions:** long-press the Planner icon on your phone to add a task, log an expense, write a note or open today's journal.
-- **Share to Planner:** in any app, tap **Share** and choose **Planner** to save text or a link as a note.
+- **Quick actions:** long-press the Nova icon on your phone to add a task, log an expense, write a note or open today's journal.
+- **Share to Nova:** in any app, tap **Share** and choose **Nova** to save text or a link as a note.
 - **Reminders:** switch them on in **More → Settings → Notifications** on each device. They arrive while the app is open or was used recently. For alarms you can't miss, open a task and tap **Add to Google Calendar**.
 - **Exporting:** notes and journal entries export to PDF or Word from the **Export** button. The exporter downloads the first time you use it, so do that once while online.
 

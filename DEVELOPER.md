@@ -1,4 +1,4 @@
-# Planner: developer notes (for Claude Code or any developer)
+# Nova: developer notes (for Claude Code or any developer)
 
 ## What this is
 A single-page installable web app (PWA) hosted on GitHub Pages, with optional sync through Firebase (Auth + Firestore) and optional Google Calendar access. No build tools or frameworks: plain JavaScript and CSS.
@@ -18,6 +18,7 @@ A single-page installable web app (PWA) hosted on GitHub Pages, with optional sy
 - `build.py` joins `src/` into `index.html`. The order of files matters (`main.js` last).
 - `sw.js`: service worker (offline cache). **Bump `VERSION` every release** so phones update.
 - `manifest.webmanifest`: install info, quick-action shortcuts, share target
+- `icon.svg`: the app icon's source (constellation N). After changing it, run `python3 tests/make_icons.py` to redraw `icon-192.png`, `icon-512.png` and `icon-maskable-512.png`. Internal names (storage keys `planner.*`, cache `planner-vN`, the repo) keep the old name on purpose.
 - `config.js`: Firebase config and optional Google client ID (per user, safe to publish)
 - `firestore.rules`: security rules; paste into Firebase after changing
 - `tests/`: Playwright tests (see `tests/README.md`)

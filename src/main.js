@@ -17,7 +17,7 @@ function draw(){
   $("#sideSettings").setAttribute("aria-current",cur==="settings"?"page":"false");
   document.body.classList.toggle("desk",UI.desktop);
   const main=$("#main");main.textContent="";
-  if(!UI.ready){setHeader("Planner","");main.append(h("div",{class:"loading",text:"Loading your planner…"}));return;}
+  if(!UI.ready){setHeader("Nova","");main.append(h("div",{class:"loading",text:"Loading Nova…"}));return;}
   ({home:renderHome,plan:renderPlan,habits:renderHabits,notes:renderNotes,money:renderMoney,links:renderLinks,more:renderMore})[tab](main);
   processSubs();updateQaHint();
   if(refocus){const el=document.getElementById(refocus.id);if(el){el.focus({preventScroll:true});try{el.setSelectionRange(refocus.a,refocus.b);}catch(e){}}}
@@ -132,7 +132,7 @@ $("#focusPill").addEventListener("click",()=>openFocus());
 const Updates={reg:null,shown:false,version:""};
 function readVersion(){if(!("caches" in window))return;caches.keys().then(ks=>{const v=(ks.find(k=>/^planner-/.test(k))||"").replace(/^planner-/,"");if(v!==Updates.version){Updates.version=v;if(UI.page==="settings")render();}}).catch(()=>{});}
 function showUpdateBar(){if(Updates.shown)return;Updates.shown=true;
-  document.body.append(h("div",{class:"updbar",role:"status"},h("span",{text:"A new version of Planner is ready."}),h("button",{class:"toast-act",text:"Update now",onclick:()=>location.reload()})));}
+  document.body.append(h("div",{class:"updbar",role:"status"},h("span",{text:"A new version of Nova is ready."}),h("button",{class:"toast-act",text:"Update now",onclick:()=>location.reload()})));}
 function checkForUpdate(){return Updates.reg?Updates.reg.update():Promise.reject(new Error("no service worker"));}
 async function checkForUpdateNow(btn){
   btn.disabled=true;

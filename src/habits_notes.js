@@ -125,7 +125,7 @@ function renderNoteFolder(main,nn){
   const deep=h("label",{class:"deepsw"},h("input",{type:"checkbox",checked:UI.noteDeep,"aria-label":cf?"Include subfolders":"Show notes from all folders",onchange:e=>{UI.noteDeep=e.target.checked;lsSet("planner.noteDeep",UI.noteDeep?"1":"0");render();}}),h("span",{text:cf?"Include subfolders":"Show notes from all folders"}));
   const list=notesInView(nn,cf).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updatedAt-a.updatedAt);
   const body=h("div",{class:"fmain"},top,tiles,h("div",{class:"frow"},deep),h("div",{class:"btnrow",style:"margin-top:10px"},h("button",{class:"btn primary wide",text:"+ New note",onclick:()=>openNote(null)})));
-  if(!list.length)body.append(h("div",{class:"sec"},h("div",{class:"empty",text:nn.length?(cf?"No notes in "+f.name+" yet.":UI.noteDeep?"No notes yet.":"No notes outside folders. Open a folder above, or switch on “Show notes from all folders”."):"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Planner to save it here."})));
+  if(!list.length)body.append(h("div",{class:"sec"},h("div",{class:"empty",text:nn.length?(cf?"No notes in "+f.name+" yet.":UI.noteDeep?"No notes yet.":"No notes outside folders. Open a folder above, or switch on “Show notes from all folders”."):"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Nova to save it here."})));
   else{
     const shown=UI.expanded.has("notes")?list:list.slice(0,40);
     body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n),cp=checkProgress(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,

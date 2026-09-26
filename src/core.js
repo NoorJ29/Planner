@@ -221,7 +221,7 @@ function openAccount(){
   const err=h("div",{class:"small",style:"color:var(--danger);min-height:20px;margin-top:10px",role:"alert"});
   const signin=h("button",{class:"btn primary",text:"Sign in"}),create=h("button",{class:"btn ghost",text:"Create account"});
   const forgot=h("button",{class:"linkbtn",text:"Forgot password?"}),skip=h("button",{class:"linkbtn",text:"Use without syncing"});
-  const close=openSheet([h("h3",{text:"Sync your planner"}),
+  const close=openSheet([h("h3",{text:"Sign in to Nova"}),
     h("p",{class:"muted",text:"Sign in with the same email on your phone and laptop, and everything stays in sync. First time? Create an account."}),
     h("div",{class:"field"},h("label",{text:"Email"}),email),h("div",{class:"field"},h("label",{text:"Password"}),pass),err,
     h("div",{class:"actions",style:"margin-top:8px"},create,signin),h("div",{class:"row",style:"justify-content:space-between;margin-top:12px"},forgot,skip)],{cls:"acct"});

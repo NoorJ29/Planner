@@ -17,7 +17,7 @@ function makeCode(){const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";const r=crypto.get
 const fmtCode=c=>c.slice(0,4)+"-"+c.slice(4);
 function renderShared(main){
   if(!fbAuth||Store.mode!=="cloud"){
-    main.append(h("div",{class:"card sec"},h("b",{text:"Share lists with family"}),h("p",{class:"small muted",text:"Shared lists live in your sync account, so everyone who joins needs to sign in to Planner. "+(fbAuth?"Sign in first, then come back here.":"Set up sync first (see the setup guide).")}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
+    main.append(h("div",{class:"card sec"},h("b",{text:"Share lists with family"}),h("p",{class:"small muted",text:"Shared lists live in your sync account, so everyone who joins needs to sign in to Nova. "+(fbAuth?"Sign in first, then come back here.":"Set up sync first (see the setup guide).")}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
   if(Shared.error==="permission-denied"){main.append(h("div",{class:"card sec"},h("b",{text:"One more setup step"}),h("p",{class:"small muted",text:"Shared lists need the updated security rules. Open Firebase, go to Firestore Database, then Rules, paste the new firestore.rules file, and click Publish. Then reopen this page."})));return;}
   const L=UI.sharedList&&Shared.lists.get(UI.sharedList);
   if(L)return renderSharedList(main,L);
@@ -66,10 +66,10 @@ async function invite(L){
   const code=makeCode();const url=location.origin+location.pathname+"?join="+code;
   const box=h("div",{class:"codebox",text:"Creating code…"});
   const shareB=h("button",{class:"btn primary wide",text:"Send invite",disabled:true});
-  openSheet([h("h3",{text:"Invite to "+L.name}),h("p",{class:"small muted",style:"margin:0 0 12px",text:"Send this code or link to family. They open Planner, sign in with their own account, and join. Anyone with the code can join, so only share it with people you trust. The code works for 7 days."}),box,h("div",{class:"btnrow"},shareB)]);
+  openSheet([h("h3",{text:"Invite to "+L.name}),h("p",{class:"small muted",style:"margin:0 0 12px",text:"Send this code or link to family. They open Nova, sign in with their own account, and join. Anyone with the code can join, so only share it with people you trust. The code works for 7 days."}),box,h("div",{class:"btnrow"},shareB)]);
   try{await fbDb.collection("invites").doc(code).set({listId:L.id,listName:L.name,createdBy:Store.user.uid,createdAt:Date.now()});
     box.textContent=fmtCode(code);shareB.disabled=false;
-    shareB.onclick=()=>shareText("Join my list “"+L.name+"” on Planner","Open this link: "+url+"\nOr in Planner go to More, Shared lists, Join with a code, and enter "+fmtCode(code));}
+    shareB.onclick=()=>shareText("Join my list “"+L.name+"” on Nova","Open this link: "+url+"\nOr in Nova go to More, Shared lists, Join with a code, and enter "+fmtCode(code));}
   catch(e){box.textContent="Couldn't create a code.";sharedFail(e);}
 }
 function openJoin(pre){

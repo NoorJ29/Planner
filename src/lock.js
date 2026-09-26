@@ -11,7 +11,7 @@ async function setPin(pin){const salt=b64(crypto.getRandomValues(new Uint8Array(
 async function checkPin(pin){const c=lockCfg();return !!c&&(await hashPin(pin,c.salt))===c.hash;}
 async function bioAvailable(){try{return !!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());}catch(e){return false;}}
 async function registerBio(){
-  const cred=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:"Planner"},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:"planner-app-lock",displayName:"Planner app lock"},
+  const cred=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:"Nova"},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:"planner-app-lock",displayName:"Nova app lock"},
     pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"discouraged"},timeout:60000}});
   const c=lockCfg();c.cred=b64(cred.rawId);lsSet(LOCK_KEY,JSON.stringify(c));
 }
@@ -37,7 +37,7 @@ function showLockScreen(){
   const bio=async()=>{try{if(await bioVerify())unlockApp();}catch(e){msg.textContent="Use your PIN instead.";}};
   const key_=(d,label)=>h("button",{class:"pkey"+(d==="del"||d==="bio"?" fn":""),"aria-label":label||d,onclick:()=>d==="bio"?bio():press(d)},label&&d!=="del"&&d!=="bio"?label:d==="del"?"⌫":d==="bio"?"👆":d);
   const pad_=h("div",{class:"pkeys"},["1","2","3","4","5","6","7","8","9"].map(n=>key_(n)),c.cred?key_("bio","Use fingerprint or face"):h("span"),key_("0"),key_("del","Delete"));
-  const scr=h("div",{id:"lockScreen",role:"dialog","aria-modal":"true","aria-label":"Planner is locked"},
+  const scr=h("div",{id:"lockScreen",role:"dialog","aria-modal":"true","aria-label":"Nova is locked"},
     h("img",{src:"icon-192.png",alt:"",width:"64",height:"64",class:"plogo"}),h("h2",{text:"Enter your PIN"}),dots,msg,pad_,
     h("button",{class:"linkbtn",text:"Forgot PIN?",onclick:forgotPin}));
   document.body.append(scr);drawDots();
@@ -67,7 +67,7 @@ function openPinSetup(mode){
   const err=h("div",{class:"small",style:"color:var(--danger);min-height:18px;margin-top:8px"});
   const go=h("button",{class:"btn primary",text:mode==="off"?"Turn off app lock":"Save PIN"});
   const close=openSheet([h("h3",{text:mode==="off"?"Turn off app lock":mode==="change"?"Change PIN":"Set up app lock"}),
-    mode==="new"?h("p",{class:"small muted",style:"margin:0",text:"Choose a 4 to 6 digit PIN. You'll need it to open Planner on this device."}):null,
+    mode==="new"?h("p",{class:"small muted",style:"margin:0",text:"Choose a 4 to 6 digit PIN. You'll need it to open Nova on this device."}):null,
     cur?h("div",{class:"field"},h("label",{text:"Current PIN"}),cur):null,a?h("div",{class:"field"},h("label",{text:"New PIN"}),a):null,b?h("div",{class:"field"},h("label",{text:"Type it again"}),b):null,err,
     h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
   go.onclick=async()=>{err.textContent="";go.disabled=true;
@@ -82,7 +82,7 @@ function openPinSetup(mode){
 }
 async function renderLockSettings(box,row){
   const c=lockCfg();const bioOk=await bioAvailable();
-  box.append(row("App lock",c?"On. Asks for your PIN"+(c.cred?" or fingerprint":"")+" when you open Planner.":"Off. Anyone with your unlocked phone can open Planner.",
+  box.append(row("App lock",c?"On. Asks for your PIN"+(c.cred?" or fingerprint":"")+" when you open Nova.":"Off. Anyone with your unlocked phone can open Nova.",
     c?h("button",{class:"chip",text:"Turn off",onclick:()=>openPinSetup("off")}):h("button",{class:"btn primary",text:"Set PIN",onclick:()=>openPinSetup("new")})));
   if(!c)return;
   box.append(row("Change PIN","",h("button",{class:"chip",text:"Change",onclick:()=>openPinSetup("change")})));

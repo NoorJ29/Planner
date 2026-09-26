@@ -195,7 +195,7 @@ function renderReview(main){
 /* ================= backup ================= */
 function downloadBackup(){
   const out={app:"planner",version:2,exportedAt:new Date().toISOString(),settings:SET};COLS.forEach(c=>out[c]=vals(c));
-  download(new Blob([JSON.stringify(out,null,1)],{type:"application/json"}),"planner-backup-"+todayKey()+".json");
+  download(new Blob([JSON.stringify(out,null,1)],{type:"application/json"}),"nova-backup-"+todayKey()+".json");
   lsSet("planner.lastBackup",String(Date.now()));toast("Backup downloaded");render();
 }
 function renderBackup(main){
@@ -203,8 +203,8 @@ function renderBackup(main){
   const counts=COLS.map(c=>D[c].size).reduce((a,b)=>a+b,0);
   main.append(h("div",{class:"card sec"},h("b",{text:"Download a backup"}),h("p",{class:"small muted",text:"Saves all "+plural(counts,"item")+" (tasks, habits, notes, goals, money and shopping lists) into one file. "+(lb?"Last backup: "+new Date(lb).toLocaleString()+".":"No backup yet on this device.")}),h("button",{class:"btn primary",text:"Download backup",onclick:downloadBackup})));
   const fi=h("input",{type:"file",accept:"application/json,.json",hidden:true,onchange:async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
-    let data;try{data=JSON.parse(await f.text());}catch(x){toast("That file isn't a Planner backup.");return;}
-    if(!data||data.app!=="planner"){toast("That file isn't a Planner backup.");return;}
+    let data;try{data=JSON.parse(await f.text());}catch(x){toast("That file isn't a Nova backup.");return;}
+    if(!data||data.app!=="planner"){toast("That file isn't a Nova backup.");return;}
     const n=COLS.reduce((a,c)=>a+(Array.isArray(data[c])?data[c].length:0),0);
     const go=h("button",{class:"btn primary",text:"Restore"});const close=openSheet([h("h3",{text:"Restore this backup?"}),h("p",{class:"muted",text:"It contains "+plural(n,"item")+" from "+new Date(data.exportedAt).toLocaleString()+". Items are added back or updated. Nothing you've added since is deleted."}),h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
     go.onclick=async()=>{go.disabled=true;try{const k=await Store.importAll(data);close();toast("Restored "+plural(k,"item"));}catch(x){console.error(x);toast("Restore failed. Try again.");go.disabled=false;}};}});
@@ -220,7 +220,7 @@ function renderSettings(main){
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Notifications"})),h("div",{class:"card",style:"padding:2px 16px"},
     row("Reminders",perm==="unsupported"?"Not supported in this browser":perm==="denied"?"Blocked. Allow notifications for this app in your phone's settings.":nOn?"On for this device":"Off",
       perm==="unsupported"||perm==="denied"?h("span"):nOn?h("button",{class:"chip",text:"Turn off",onclick:()=>Notify.disable()}):h("button",{class:"btn primary",text:"Turn on",onclick:()=>Notify.enable()})),
-    nOn?row("Send a test","Check that notifications show up",h("button",{class:"chip",text:"Test",onclick:()=>Notify.show("Planner","Notifications are working.","test")})):null,
+    nOn?row("Send a test","Check that notifications show up",h("button",{class:"chip",text:"Test",onclick:()=>Notify.show("Nova","Notifications are working.","test")})):null,
     row("Habit check-in","Nudge if habits are left",times("planner.habitNudge",["08:00","12:00","18:00","20:00","21:00"])),
     row("Journal nudge","If you haven't written today",times("planner.journalNudge",["20:00","21:00","22:00"])))),
     h("p",{class:"small muted",text:"Web apps can only notify you while the app is open or was used recently. For alarms you can't miss, open the task and tap “Add to Google Calendar”."}));
@@ -242,8 +242,8 @@ function renderSettings(main){
     row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))),
     row("App version",Updates.version||"Checking…",h("button",{class:"chip",text:"Check for updates",onclick:e=>checkForUpdateNow(e.currentTarget)})))));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
-    h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Planner icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
-    h("p",{style:"margin:0 0 10px",text:"📤 Share to Planner: in any app, tap Share and pick Planner to save text or links as a note."}),
+    h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
+    h("p",{style:"margin:0 0 10px",text:"📤 Share to Nova: in any app, tap Share and pick Nova to save text or links as a note."}),
     h("p",{class:"small muted",style:"margin:0",text:"Home-screen widgets need a native Android app, so installed web apps can't show them. Quick actions are the closest option."}))));
 }
 function applyTheme(){const t=lsGet("planner.theme","auto");if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);}
@@ -253,7 +253,7 @@ function renderGuide(main){
   const keyRow=(keys,what)=>h("div",{class:"setrow"},h("div",null,h("b",{text:what})),h("span",{class:"keys"},keys.map((grp,i)=>[i?h("span",{class:"plus",text:"or"}):null,grp.map((k,j)=>[j?h("span",{class:"plus",text:"+"}):null,h("kbd",{text:k})])])));
   const tipRow=(icon,title,text)=>h("div",{class:"setrow",style:"align-items:flex-start"},h("div",null,h("b",{text:icon+"  "+title}),h("span",{text:text})));
   const card=(title,sub,rows)=>h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:title}),sub?h("span",{class:"n",text:sub}):null),h("div",{class:"card",style:"padding:2px 16px"},rows));
-  main.append(h("p",{class:"muted",style:"margin:16px 0 0",text:"Everything Planner can do, and the fastest ways to do it."}));
+  main.append(h("p",{class:"muted",style:"margin:16px 0 0",text:"Everything Nova can do, and the fastest ways to do it."}));
   const MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent),CTRL=MAC?"⌘":"Ctrl";
   const kb=card("Keyboard shortcuts","On a laptop",[
     keyRow([["N"]],"New item in the section you're in"),
@@ -268,8 +268,8 @@ function renderGuide(main){
     keyRow([["Esc"]],"Close the open window"),
     keyRow([["?"]],"Open this guide")]);
   const phone=card("On your phone","Touch and gestures",[
-    tipRow("⚡","Quick actions","Long-press the Planner icon on your home screen to add a task, log an expense, write a note or open today's journal."),
-    tipRow("📤","Share to Planner","In any app, tap Share and choose Planner to save text or a link as a note."),
+    tipRow("⚡","Quick actions","Long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."),
+    tipRow("📤","Share to Nova","In any app, tap Share and choose Nova to save text or a link as a note."),
     tipRow("👆","Swipe the calendar","In Month view, swipe left or right to change month."),
     tipRow("↩️","Undo","Deleted or ticked something by mistake? Tap Undo on the message at the bottom.")]);
   if(UI.desktop)main.append(kb,phone);else main.append(phone,kb);
@@ -299,7 +299,7 @@ function renderGuide(main){
     tipRow("📝","Journal","One entry per day with a mood. Export your notes or journal as PDF or Word from the Export button."),
     tipRow("🛒","Shopping","Type “2 kg rice” and the amount is split out for you. Share a list straight to WhatsApp."),
     tipRow("🔗","Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
-    tipRow("📤","Links from other apps","Share a web page to Planner from your browser and it's saved to Links."),
+    tipRow("📤","Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
     tipRow("💰","Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
     tipRow("🏠","Home screen","Tap Customise on Home to choose widgets, make them small or large, and reorder them."),
     tipRow("⏱️","Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
@@ -321,7 +321,7 @@ function acctMsg(e){const c=(e&&e.code)||"";
   return"Something went wrong. Try again.";}
 function renderProfile(main){
   const u=Store.user;
-  if(!u){main.append(h("div",{class:"card sec"},h("b",{text:"You're not signed in"}),h("p",{class:"small muted",text:fbAuth?"Sign in to sync your planner between your phone and laptop.":"Sync isn't set up, so everything is saved on this device only."}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
+  if(!u){main.append(h("div",{class:"card sec"},h("b",{text:"You're not signed in"}),h("p",{class:"small muted",text:fbAuth?"Sign in to sync Nova between your phone and laptop.":"Sync isn't set up, so everything is saved on this device only."}),fbAuth?h("button",{class:"btn primary",text:"Sign in",onclick:openAccount}):null));return;}
   const me=meInfo(),st=syncState(),row=(title,sub,ctrl)=>h("div",{class:"setrow"},h("div",null,h("b",{text:title}),sub?h("span",{text:sub}):null),ctrl);
   main.append(h("div",{class:"card sec prof"},h("span",{class:"pav big",style:"--c:"+colorFor(u.uid),text:me.name.charAt(0).toUpperCase()}),
     h("div",{class:"pinfo"},h("b",{class:"pname",text:me.name}),h("span",{class:"small muted",text:u.email||""}),h("span",{class:"pstat "+st.dot},h("i"),st.long))));
