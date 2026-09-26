@@ -128,6 +128,39 @@ try{if(sessionStorage.getItem("planner.deleted")){sessionStorage.removeItem("pla
 refreshFocusUI();{const st=focusState();if(st&&!st.paused&&!st.done&&focusRemaining(st)<=0)finishFocus();else scheduleFocusEnd();}
 $("#focusPill").addEventListener("click",()=>openFocus());
 
+/* install: offered while Nova runs in a browser tab instead of as the installed app */
+const Install={prompt:null,installed:false};
+const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: window-controls-overlay)").matches||navigator.standalone===true;
+const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const canOfferInstall=()=>location.protocol.startsWith("http")&&!isStandalone()&&!Install.installed;
+function updateInstallUI(){document.querySelectorAll(".installbtn").forEach(b=>{b.hidden=!canOfferInstall();});if(UI.tab==="more"&&UI.page==="settings")render();}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();Install.prompt=e;updateInstallUI();}); // Chrome, Edge, Samsung: we show our own button instead
+window.addEventListener("appinstalled",()=>{Install.installed=true;Install.prompt=null;updateInstallUI();toast("Nova is installed. Open it from your home screen or app list.");});
+matchMedia("(display-mode: standalone)").addEventListener("change",updateInstallUI);
+if(navigator.getInstalledRelatedApps)navigator.getInstalledRelatedApps().then(a=>{if(a&&a.length){Install.installed=true;updateInstallUI();}}).catch(()=>{});
+async function installApp(){
+  if(Install.prompt){const p=Install.prompt;Install.prompt=null;p.prompt();try{const r=await p.userChoice;if(r&&r.outcome!=="accepted")toast("No problem. Tap Install whenever you're ready.");}catch(e){}return;}
+  openInstallHelp();
+}
+// When the browser won't let a button install directly, show the steps for this browser.
+function openInstallHelp(){
+  const ua=navigator.userAgent,android=/Android/.test(ua),samsung=/SamsungBrowser/.test(ua),firefox=/Firefox|FxiOS/.test(ua),edge=/Edg\//.test(ua);
+  const steps=isIOS()?(/CriOS|FxiOS|EdgiOS/.test(ua)?["Open this page in Safari: other iPhone browsers can't add apps.","In Safari, tap the Share button (the square with an arrow).","Scroll down, tap “Add to Home Screen”, then “Add”."]
+      :["Tap the Share button (the square with an arrow) at the bottom of Safari.","Scroll down and tap “Add to Home Screen”.","Tap “Add”. Nova appears on your home screen."])
+    :samsung?["Tap the menu ☰ at the bottom right.","Tap “Add page to”, then “Home screen”, then “Add”."]
+    :android&&firefox?["Tap the menu ⋮.","Tap “Install” or “Add to Home screen”."]
+    :android?["Tap the menu ⋮ at the top right of Chrome.","Tap “Install app”, or “Add to Home screen” then “Install”.","Not there? Pull down to refresh this page, wait a few seconds, and check the menu again."]
+    :firefox?["Firefox on computers can't install apps. Open this address in Chrome or Edge, then use the Install button there."]
+    :edge?["Click the “App available” icon at the right end of the address bar.","Or open the menu …, then “Apps”, then “Install Nova”."]
+    :["Click the install icon at the right end of the address bar (a screen with a down arrow).","Or open the menu ⋮, then “Cast, save and share”, then “Install page as app”."];
+  const close=openSheet([h("h3",{text:"Install Nova"}),h("p",{class:"muted",style:"margin:0 0 10px",text:"Once installed, Nova opens like any app: its own icon, full screen, and it works offline."}),
+    h("ol",{class:"isteps"},steps.map(t=>h("li",{text:t}))),
+    h("p",{class:"small muted",text:"Already installed? Open Nova from your home screen or app list instead of the browser."}),
+    h("div",{class:"actions"},h("button",{class:"btn primary",text:"Got it",onclick:()=>close()}))]);
+}
+document.querySelectorAll(".installbtn").forEach(b=>b.addEventListener("click",installApp));
+updateInstallUI();
+
 /* app updates. APP_VERSION is written in by build.py from sw.js; the newest version is read from sw.js on the server. */
 const APP_VERSION=Number("__APP_VERSION__")||0;
 const Updates={reg:null,latest:0,checked:0,state:""}; // state: "" | "checking" | "offline" | "error"

@@ -14,6 +14,7 @@
     {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
     {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
+  "related_applications": [{"platform": "webapp", "url": "./manifest.webmanifest"}],
   "shortcuts": [
     {"name": "Add task", "short_name": "Add task", "url": "./?a=task", "icons": [{"src": "sc-task.png", "sizes": "96x96", "type": "image/png"}]},
     {"name": "Log expense", "short_name": "Expense", "url": "./?a=expense", "icons": [{"src": "sc-expense.png", "sizes": "96x96", "type": "image/png"}]},
@@ -23,6 +24,7 @@
   "share_target": {
     "action": "./",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {"title": "title", "text": "text", "url": "url"}
   }
 }

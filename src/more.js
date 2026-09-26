@@ -244,7 +244,8 @@ function renderSettings(main){
   const upd=updateReady()?row("Version "+Updates.latest+" is available","You're on version "+APP_VERSION+". Updating takes a second and keeps all your data.",h("button",{class:"btn primary",style:"white-space:nowrap",text:"Update now",onclick:applyUpdate}))
     :row("Nova version "+APP_VERSION,st==="checking"?"Checking for updates…":st==="offline"?"Couldn't check: you're offline.":st==="error"?"Couldn't check right now. Try again later.":when?"You're up to date. Last checked at "+when+".":"",
       h("button",{class:"chip",text:st==="checking"?"Checking…":"Check for updates",disabled:st==="checking",onclick:()=>checkForUpdateNow()}));
-  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Updates"})),h("div",{class:"card upcard",style:"padding:2px 16px"},upd)),
+  const inst=canOfferInstall()?h("div",{class:"setrow"},h("div",null,h("b",{text:"Install Nova on this device"}),h("span",{text:"Get its own icon, full screen, and offline use."})),h("button",{class:"btn primary",style:"white-space:nowrap",text:"Install",onclick:installApp})):null;
+  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Updates"})),h("div",{class:"card upcard",style:"padding:2px 16px"},upd,inst)),
     h("p",{class:"small muted",text:"Nova checks for updates when you open it and every 30 minutes, and shows a bar at the top when one is ready."}));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
     h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
