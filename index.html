@@ -13,6 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+<script>/* launch screen: when opened as the installed app (or with ?launch=1 to preview) */
+if(matchMedia("(display-mode: standalone)").matches||navigator.standalone===true||/[?&]launch=1/.test(location.search))document.documentElement.classList.add("launching");</script>
 <script src="config.js"></script>
 <style>
 :root{
@@ -728,10 +730,58 @@ body:not(.desk) .nrow{padding:6px 4px}
   [data-tip]{position:relative}
   [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:6px 10px;border-radius:9px;white-space:nowrap;box-shadow:var(--shadow);z-index:10;pointer-events:none}
 }
+/* launch screen: dark sky, the constellation draws itself, then the app rises in */
+#launch{display:none}
+html.launching #launch{display:flex;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 38%,#17414A 0%,#10252F 55%,#0A1820 100%);transition:opacity .55s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+html.launching body{overflow:hidden}
+#launch.out{opacity:0;transform:scale(1.08);pointer-events:none}
+.lsky{position:absolute;inset:0}
+.lsky i{position:absolute;width:var(--s);height:var(--s);border-radius:50%;background:#E8F7F3;opacity:0;animation:ltw 2.4s ease-in-out var(--d) infinite}
+@keyframes ltw{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:var(--o);transform:scale(1)}}
+.lcenter{position:relative;display:flex;flex-direction:column;align-items:center;transform:translateY(-4vh)}
+#launch.out .lcenter{transform:translateY(-6vh) scale(1.04);filter:blur(2px);transition:transform .6s cubic-bezier(.2,.8,.2,1),filter .6s}
+.lmark{width:min(46vw,190px);height:auto;overflow:visible}
+.ll{fill:none;stroke:#9ED9CF;stroke-width:9;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:ldraw .38s cubic-bezier(.6,0,.2,1) forwards}
+.l1{animation-delay:.18s}.l2{animation-delay:.5s}.l3{animation-delay:.84s}
+@keyframes ldraw{to{stroke-dashoffset:0}}
+.ln{fill:#E8F7F3;transform-box:fill-box;transform-origin:center;transform:scale(0);animation:lpop .42s cubic-bezier(.3,1.6,.5,1) forwards}
+.n1{animation-delay:.08s}.n2{animation-delay:.42s}.n3{animation-delay:.78s}
+@keyframes lpop{to{transform:scale(1)}}
+.lstar{fill:#F5B83F;transform-box:fill-box;transform-origin:center;transform:scale(0) rotate(-60deg);animation:lstar .6s cubic-bezier(.3,1.5,.5,1) 1.08s forwards}
+@keyframes lstar{to{transform:scale(1) rotate(0)}}
+.lglow{transform-box:fill-box;transform-origin:center;opacity:0;animation:lglow 1.6s ease-in-out 1.2s infinite}
+@keyframes lglow{0%{opacity:0;transform:scale(.6)}40%{opacity:1;transform:scale(1.05)}100%{opacity:.55;transform:scale(.95)}}
+.lword{margin-top:18px;font:800 46px/1 var(--display);letter-spacing:-.02em;color:#F4F1E8;opacity:0;transform:translateY(14px);animation:lrise .6s cubic-bezier(.2,.8,.2,1) 1.2s forwards}
+.ltag{margin-top:10px;font:500 15px var(--body);color:#9ED9CF;letter-spacing:.02em;opacity:0;transform:translateY(10px);animation:lrise .6s cubic-bezier(.2,.8,.2,1) 1.36s forwards}
+@keyframes lrise{to{opacity:1;transform:none}}
+/* the app rises into place as the launch screen leaves */
+body.appin .wrap,body.appin .dock,body.appin .side{animation:appin .7s cubic-bezier(.2,.8,.2,1) both}
+body.appin .dock{animation-delay:.08s}
+@keyframes appin{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .ll,.ln,.lstar,.lword,.ltag{animation:none;stroke-dashoffset:0;transform:none;opacity:1}
+  .lglow,.lsky i{animation:none;opacity:.5}
+  body.appin .wrap,body.appin .dock,body.appin .side{animation:none}
+}
 
 </style>
 </head>
 <body>
+<div id="launch" aria-hidden="true">
+  <div class="lsky"></div>
+  <div class="lcenter">
+    <svg class="lmark" viewBox="80 60 360 380">
+      <defs><radialGradient id="lglow"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".9"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></radialGradient></defs>
+      <path class="ll l1" pathLength="1" d="M166 366L166 160"/><path class="ll l2" pathLength="1" d="M166 160L346 352"/><path class="ll l3" pathLength="1" d="M346 352L346 150"/>
+      <circle class="ln n1" cx="166" cy="366" r="16"/><circle class="ln n2" cx="166" cy="160" r="20"/><circle class="ln n3" cx="346" cy="352" r="18"/>
+      <circle class="lglow" cx="346" cy="150" r="92" fill="url(#lglow)"/>
+      <path class="lstar" d="M346 94c6 36 20 50 56 56c-36 6-50 20-56 56c-6-36-20-50-56-56c36-6 50-20 56-56z"/>
+    </svg>
+    <div class="lword">Nova</div>
+    <div class="ltag">Plan your day. Shine brighter.</div>
+  </div>
+</div>
 <aside class="side" aria-label="Sidebar">
   <div class="brand"><img src="icon-192.png" alt="" width="34" height="34"><b>Nova</b></div>
   <button class="side-search" id="sideSearch"><span>Search</span><kbd>/</kbd></button>
@@ -3567,6 +3617,17 @@ function runPending(){
   else if(a==="journal"){UI.tab="notes";UI.notesSeg="journal";render();openJournal(todayKey());}
 }
 
+// Launch screen (installed app, or ?launch=1): stays until the drawing finishes and the app is ready; tap to skip.
+(function launch(){
+  const el=$("#launch");if(!el||!document.documentElement.classList.contains("launching"))return;
+  const sky=el.querySelector(".lsky"),calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for(let i=0;i<34;i++){const s=h("i");s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--s:${(1+Math.random()*2.2).toFixed(1)}px;--o:${(.35+Math.random()*.6).toFixed(2)};--d:${(Math.random()*2.4).toFixed(2)}s`;sky.append(s);}
+  const t0=performance.now(),min=calm?450:2450;let gone=false;
+  const leave=()=>{if(gone)return;gone=true;el.classList.add("out");document.body.classList.add("appin");
+    setTimeout(()=>{el.remove();document.documentElement.classList.remove("launching");document.body.classList.remove("appin");},720);};
+  const wait=()=>{if(UI.ready)setTimeout(leave,Math.max(0,min-(performance.now()-t0)));else setTimeout(wait,100);};
+  wait();setTimeout(leave,4500);el.addEventListener("click",leave);
+})();
 applyTheme();
 if(lockCfg())lockNow();
 render();
@@ -3611,7 +3672,7 @@ document.querySelectorAll(".installbtn").forEach(b=>b.addEventListener("click",i
 updateInstallUI();
 
 /* app updates. APP_VERSION is written in by build.py from sw.js; the newest version is read from sw.js on the server. */
-const APP_VERSION=Number("20")||0;
+const APP_VERSION=Number("21")||0;
 const Updates={reg:null,latest:0,checked:0,state:""}; // state: "" | "checking" | "offline" | "error"
 const updateReady=()=>Updates.latest>APP_VERSION;
 async function latestVersion(){const r=await fetch("./sw.js?check="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);

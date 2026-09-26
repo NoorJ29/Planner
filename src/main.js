@@ -120,6 +120,17 @@ function runPending(){
   else if(a==="journal"){UI.tab="notes";UI.notesSeg="journal";render();openJournal(todayKey());}
 }
 
+// Launch screen (installed app, or ?launch=1): stays until the drawing finishes and the app is ready; tap to skip.
+(function launch(){
+  const el=$("#launch");if(!el||!document.documentElement.classList.contains("launching"))return;
+  const sky=el.querySelector(".lsky"),calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for(let i=0;i<34;i++){const s=h("i");s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--s:${(1+Math.random()*2.2).toFixed(1)}px;--o:${(.35+Math.random()*.6).toFixed(2)};--d:${(Math.random()*2.4).toFixed(2)}s`;sky.append(s);}
+  const t0=performance.now(),min=calm?450:2450;let gone=false;
+  const leave=()=>{if(gone)return;gone=true;el.classList.add("out");document.body.classList.add("appin");
+    setTimeout(()=>{el.remove();document.documentElement.classList.remove("launching");document.body.classList.remove("appin");},720);};
+  const wait=()=>{if(UI.ready)setTimeout(leave,Math.max(0,min-(performance.now()-t0)));else setTimeout(wait,100);};
+  wait();setTimeout(leave,4500);el.addEventListener("click",leave);
+})();
 applyTheme();
 if(lockCfg())lockNow();
 render();

@@ -13,12 +13,28 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+<script>/* launch screen: when opened as the installed app (or with ?launch=1 to preview) */
+if(matchMedia("(display-mode: standalone)").matches||navigator.standalone===true||/[?&]launch=1/.test(location.search))document.documentElement.classList.add("launching");</script>
 <script src="config.js"></script>
 <style>
 /*CSS*/
 </style>
 </head>
 <body>
+<div id="launch" aria-hidden="true">
+  <div class="lsky"></div>
+  <div class="lcenter">
+    <svg class="lmark" viewBox="80 60 360 380">
+      <defs><radialGradient id="lglow"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".9"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></radialGradient></defs>
+      <path class="ll l1" pathLength="1" d="M166 366L166 160"/><path class="ll l2" pathLength="1" d="M166 160L346 352"/><path class="ll l3" pathLength="1" d="M346 352L346 150"/>
+      <circle class="ln n1" cx="166" cy="366" r="16"/><circle class="ln n2" cx="166" cy="160" r="20"/><circle class="ln n3" cx="346" cy="352" r="18"/>
+      <circle class="lglow" cx="346" cy="150" r="92" fill="url(#lglow)"/>
+      <path class="lstar" d="M346 94c6 36 20 50 56 56c-36 6-50 20-56 56c-6-36-20-50-56-56c36-6 50-20 56-56z"/>
+    </svg>
+    <div class="lword">Nova</div>
+    <div class="ltag">Plan your day. Shine brighter.</div>
+  </div>
+</div>
 <aside class="side" aria-label="Sidebar">
   <div class="brand"><img src="icon-192.png" alt="" width="34" height="34"><b>Nova</b></div>
   <button class="side-search" id="sideSearch"><span>Search</span><kbd>/</kbd></button>

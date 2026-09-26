@@ -711,3 +711,37 @@ body:not(.desk) .nrow{padding:6px 4px}
   [data-tip]{position:relative}
   [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:6px 10px;border-radius:9px;white-space:nowrap;box-shadow:var(--shadow);z-index:10;pointer-events:none}
 }
+/* launch screen: dark sky, the constellation draws itself, then the app rises in */
+#launch{display:none}
+html.launching #launch{display:flex;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 38%,#17414A 0%,#10252F 55%,#0A1820 100%);transition:opacity .55s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+html.launching body{overflow:hidden}
+#launch.out{opacity:0;transform:scale(1.08);pointer-events:none}
+.lsky{position:absolute;inset:0}
+.lsky i{position:absolute;width:var(--s);height:var(--s);border-radius:50%;background:#E8F7F3;opacity:0;animation:ltw 2.4s ease-in-out var(--d) infinite}
+@keyframes ltw{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:var(--o);transform:scale(1)}}
+.lcenter{position:relative;display:flex;flex-direction:column;align-items:center;transform:translateY(-4vh)}
+#launch.out .lcenter{transform:translateY(-6vh) scale(1.04);filter:blur(2px);transition:transform .6s cubic-bezier(.2,.8,.2,1),filter .6s}
+.lmark{width:min(46vw,190px);height:auto;overflow:visible}
+.ll{fill:none;stroke:#9ED9CF;stroke-width:9;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:ldraw .38s cubic-bezier(.6,0,.2,1) forwards}
+.l1{animation-delay:.18s}.l2{animation-delay:.5s}.l3{animation-delay:.84s}
+@keyframes ldraw{to{stroke-dashoffset:0}}
+.ln{fill:#E8F7F3;transform-box:fill-box;transform-origin:center;transform:scale(0);animation:lpop .42s cubic-bezier(.3,1.6,.5,1) forwards}
+.n1{animation-delay:.08s}.n2{animation-delay:.42s}.n3{animation-delay:.78s}
+@keyframes lpop{to{transform:scale(1)}}
+.lstar{fill:#F5B83F;transform-box:fill-box;transform-origin:center;transform:scale(0) rotate(-60deg);animation:lstar .6s cubic-bezier(.3,1.5,.5,1) 1.08s forwards}
+@keyframes lstar{to{transform:scale(1) rotate(0)}}
+.lglow{transform-box:fill-box;transform-origin:center;opacity:0;animation:lglow 1.6s ease-in-out 1.2s infinite}
+@keyframes lglow{0%{opacity:0;transform:scale(.6)}40%{opacity:1;transform:scale(1.05)}100%{opacity:.55;transform:scale(.95)}}
+.lword{margin-top:18px;font:800 46px/1 var(--display);letter-spacing:-.02em;color:#F4F1E8;opacity:0;transform:translateY(14px);animation:lrise .6s cubic-bezier(.2,.8,.2,1) 1.2s forwards}
+.ltag{margin-top:10px;font:500 15px var(--body);color:#9ED9CF;letter-spacing:.02em;opacity:0;transform:translateY(10px);animation:lrise .6s cubic-bezier(.2,.8,.2,1) 1.36s forwards}
+@keyframes lrise{to{opacity:1;transform:none}}
+/* the app rises into place as the launch screen leaves */
+body.appin .wrap,body.appin .dock,body.appin .side{animation:appin .7s cubic-bezier(.2,.8,.2,1) both}
+body.appin .dock{animation-delay:.08s}
+@keyframes appin{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .ll,.ln,.lstar,.lword,.ltag{animation:none;stroke-dashoffset:0;transform:none;opacity:1}
+  .lglow,.lsky i{animation:none;opacity:.5}
+  body.appin .wrap,body.appin .dock,body.appin .side{animation:none}
+}
