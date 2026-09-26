@@ -1,5 +1,5 @@
 // Offline support. After changing any file, bump VERSION so phones pick up the update.
-const VERSION = "planner-v17";
+const VERSION = "planner-v18";
 const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 const CDN = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"];
 
@@ -16,6 +16,7 @@ self.addEventListener("fetch", e => {
   const sameOrigin = url.origin === self.location.origin;
   const isLogo = (url.hostname === "www.google.com" && url.pathname.startsWith("/s2/favicons")) || /^t\d\.gstatic\.com$/.test(url.hostname);
   if (!sameOrigin && !isLogo && !CDN.includes(url.hostname)) return; // Firebase sync traffic goes straight to the network
+  if (sameOrigin && url.pathname.endsWith("/sw.js")) return; // update checks must ask the server, never a cached copy
   if (sameOrigin) {
     // Network first so updates show up; fall back to cache when offline. Query strings (shortcuts) share the cached page.
     e.respondWith(fetch(req).then(res => {

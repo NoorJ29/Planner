@@ -128,22 +128,28 @@ try{if(sessionStorage.getItem("planner.deleted")){sessionStorage.removeItem("pla
 refreshFocusUI();{const st=focusState();if(st&&!st.paused&&!st.done&&focusRemaining(st)<=0)finishFocus();else scheduleFocusEnd();}
 $("#focusPill").addEventListener("click",()=>openFocus());
 
-/* app updates: sw.js installs new versions straight away; offer a one-tap reload into them */
-const Updates={reg:null,shown:false,version:""};
-function readVersion(){if(!("caches" in window))return;caches.keys().then(ks=>{const v=(ks.find(k=>/^planner-/.test(k))||"").replace(/^planner-/,"");if(v!==Updates.version){Updates.version=v;if(UI.page==="settings")render();}}).catch(()=>{});}
-function showUpdateBar(){if(Updates.shown)return;Updates.shown=true;
-  document.body.append(h("div",{class:"updbar",role:"status"},h("span",{text:"A new version of Nova is ready."}),h("button",{class:"toast-act",text:"Update now",onclick:()=>location.reload()})));}
-function checkForUpdate(){return Updates.reg?Updates.reg.update():Promise.reject(new Error("no service worker"));}
-async function checkForUpdateNow(btn){
-  btn.disabled=true;
-  try{await checkForUpdate();const r=Updates.reg;if(!r.installing&&!r.waiting&&!Updates.shown)toast("You're up to date.");}
-  catch(e){toast(Updates.reg?"Couldn't check for updates. Are you online?":"Updates aren't available in this browser.");}
-  btn.disabled=false;
+/* app updates. APP_VERSION is written in by build.py from sw.js; the newest version is read from sw.js on the server. */
+const APP_VERSION=Number("__APP_VERSION__")||0;
+const Updates={reg:null,latest:0,checked:0,state:""}; // state: "" | "checking" | "offline" | "error"
+const updateReady=()=>Updates.latest>APP_VERSION;
+async function latestVersion(){const r=await fetch("./sw.js?check="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);
+  const m=(await r.text()).match(/VERSION = "planner-v(\d+)"/);if(!m)throw new Error("No version in sw.js");return Number(m[1]);}
+function refreshUpdateUI(){if(UI.tab==="more"&&UI.page==="settings")render();}
+async function checkForUpdate(){
+  if(!location.protocol.startsWith("http")||Updates.state==="checking")return;
+  Updates.state="checking";refreshUpdateUI();
+  try{Updates.latest=await latestVersion();Updates.checked=Date.now();Updates.state="";
+    if(updateReady()){if(Updates.reg)Updates.reg.update().catch(()=>{});showUpdateBar();}}
+  catch(e){Updates.state=navigator.onLine?"error":"offline";}
+  refreshUpdateUI();
 }
+async function checkForUpdateNow(){await checkForUpdate();if(!Updates.state&&!updateReady())toast("You're on the latest version ("+APP_VERSION+").");}
+function applyUpdate(){location.reload();} // index.html is fetched fresh first, so a reload runs the new version
+function showUpdateBar(){const old=$(".updbar");if(old)old.remove();
+  document.body.append(h("div",{class:"updbar",role:"status"},h("span",{text:"Nova version "+Updates.latest+" is ready (you have "+APP_VERSION+")."}),h("button",{class:"toast-act",text:"Update now",onclick:applyUpdate})));}
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
-  let firstInstall=!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(firstInstall){firstInstall=false;readVersion();return;}showUpdateBar();});
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").then(r=>{Updates.reg=r;readVersion();}).catch(()=>{}));
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkForUpdate().catch(()=>{});});
-  setInterval(()=>checkForUpdate().catch(()=>{}),30*60*1000);
+  navigator.serviceWorker.addEventListener("controllerchange",()=>checkForUpdate()); // a new worker took over; the bar shows only if it's newer than this page
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").then(r=>{Updates.reg=r;}).catch(()=>{}));
 }
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkForUpdate();});
+setInterval(checkForUpdate,30*60*1000);setTimeout(checkForUpdate,3000);

@@ -239,8 +239,13 @@ function renderSettings(main){
     row("Home screen widgets","Choose what the Home tab shows",h("button",{class:"chip",text:"Customise",onclick:openDashEditor})),
     row("Bottom bar (phone)",navFull("phone").map(navName).join(", "),h("button",{class:"chip",text:"Change",onclick:()=>openNavEditor("phone")})),
     row("Sidebar (laptop)",navFull("desk").map(navName).join(", "),h("button",{class:"chip",text:"Change",onclick:()=>openNavEditor("desk")})),
-    row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))),
-    row("App version",Updates.version||"Checking…",h("button",{class:"chip",text:"Check for updates",onclick:e=>checkForUpdateNow(e.currentTarget)})))));
+    row("Appearance","",h("select",{class:"inp","aria-label":"Theme",onchange:e=>{lsSet("planner.theme",e.target.value);applyTheme();}},[["auto","Match phone"],["light","Light"],["dark","Dark"]].map(([v,l])=>h("option",{value:v,selected:theme===v},l)))))));
+  const st=Updates.state,when=Updates.checked?new Date(Updates.checked).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}):"";
+  const upd=updateReady()?row("Version "+Updates.latest+" is available","You're on version "+APP_VERSION+". Updating takes a second and keeps all your data.",h("button",{class:"btn primary",style:"white-space:nowrap",text:"Update now",onclick:applyUpdate}))
+    :row("Nova version "+APP_VERSION,st==="checking"?"Checking for updates…":st==="offline"?"Couldn't check: you're offline.":st==="error"?"Couldn't check right now. Try again later.":when?"You're up to date. Last checked at "+when+".":"",
+      h("button",{class:"chip",text:st==="checking"?"Checking…":"Check for updates",disabled:st==="checking",onclick:()=>checkForUpdateNow()}));
+  main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Updates"})),h("div",{class:"card upcard",style:"padding:2px 16px"},upd)),
+    h("p",{class:"small muted",text:"Nova checks for updates when you open it and every 30 minutes, and shows a bar at the top when one is ready."}));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
     h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
     h("p",{style:"margin:0 0 10px",text:"📤 Share to Nova: in any app, tap Share and pick Nova to save text or links as a note."}),

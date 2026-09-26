@@ -16,7 +16,7 @@ A single-page installable web app (PWA) hosted on GitHub Pages, with optional sy
   - `links.js`, `smart.js` (quick-add parser), `focus.js`, `extras.js` (subscriptions, countdowns, templates), `insights.js`, `lock.js`, `shared.js` (family lists), `gcal.js` (Google Calendar), `home.js` (dashboard, bottom-bar choice)
   - `main.js`: render loop, navigation, keyboard shortcuts, startup
 - `build.py` joins `src/` into `index.html`. The order of files matters (`main.js` last).
-- `sw.js`: service worker (offline cache). **Bump `VERSION` every release** so phones update.
+- `sw.js`: service worker (offline cache). **Bump `VERSION` every release, before building**: it is also the app's version number.
 - `manifest.webmanifest`: install info, quick-action shortcuts, share target
 - `icon.svg`: the app icon's source (constellation N). After changing it, run `python3 tests/make_icons.py` to redraw `icon-192.png`, `icon-512.png` and `icon-maskable-512.png`. Internal names (storage keys `planner.*`, cache `planner-vN`, the repo) keep the old name on purpose.
 - `config.js`: Firebase config and optional Google client ID (per user, safe to publish)
@@ -32,10 +32,10 @@ Without Firebase config, everything is stored in `localStorage` (`planner.v2`).
 
 ## Workflow
 1. Edit files in `src/`.
-2. `python3 build.py`
-3. Test locally: `python3 -m http.server 8765`, open http://localhost:8765, and run the tests.
-4. Bump `VERSION` in `sw.js`.
-5. Commit and push to the GitHub repo; GitHub Pages redeploys in about a minute.
+2. Bump `VERSION` in `sw.js` (for example `planner-v18` to `planner-v19`). Do this **before** building: `build.py` copies the number into the app, which shows it in Settings → Updates and compares it with the server's `sw.js` to spot new versions.
+3. `python3 build.py` (on Windows: `python3 -X utf8 build.py`).
+4. Test locally: `python3 -m http.server 8765`, open http://localhost:8765, and run the tests.
+5. Commit and push to the GitHub repo; GitHub Pages redeploys in about a minute, and open apps show "Nova version N is ready".
 
 ## Conventions
 - UI text: plain, friendly English, no jargon. Buttons say exactly what they do.
