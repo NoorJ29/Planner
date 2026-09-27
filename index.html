@@ -3371,7 +3371,7 @@ function renderGcalSettings(box,row){
 
 /* ================= home dashboard ================= */
 const WIDGETS=[
-  ["today","✅","Today's tasks"],["next","🕒","Next up"],["habits","🔥","Habits"],["focus","⏱️","Focus timer"],
+  ["today","","Today's tasks"],["next","🕒","Next up"],["habits","🔥","Habits"],["focus","⏱️","Focus timer"],
   ["money","💰","Money this month"],["bills","🔁","Upcoming bills"],["countdowns","🎉","Countdowns"],["journal","✍️","Journal"],
   ["goals","🎯","Goals"],["links","🔗","Quick links"],["shopping","🛒","Shopping list"],["week","📊","This week"],["note","📌","Pinned note"]];
 const WMAP=Object.fromEntries(WIDGETS.map(w=>[w[0],w]));
@@ -3383,7 +3383,7 @@ function dashConfig(){
 }
 function greeting(){const hr=new Date().getHours();return hr<5?"Good night":hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";}
 function wcard(id,size,body,go){const [,icon,name]=WMAP[id];
-  return h("section",{class:"wdg "+size,"data-w":id},h("div",{class:"wdh"},h("span",{class:"wdi",text:icon}),h("b",{text:name}),go?h("button",{class:"wdgo","aria-label":"Open "+name,text:"›",onclick:go}):null),body);}
+  return h("section",{class:"wdg "+size,"data-w":id},h("div",{class:"wdh"},icon?h("span",{class:"wdi",text:icon}):null,h("b",{text:name}),go?h("button",{class:"wdgo","aria-label":"Open "+name,text:"›",onclick:go}):null),body);}
 function stat(big,small,onclick){return h(onclick?"button":"div",{class:"wstat",onclick},h("b",{text:big}),h("span",{text:small}));}
 function nextUp(limit){
   const now=new Date(),nowK=todayKey(),nowT=pad(now.getHours())+":"+pad(now.getMinutes()),tom=key(addDays(now,1));const out=[];
@@ -3453,7 +3453,7 @@ function renderHome(main){
 function openDashEditor(){
   let draft=dashConfig();const box=h("div");
   const draw=()=>{box.textContent="";draft.forEach((w,i)=>{const [,icon,name]=WMAP[w.id];
-    box.append(h("div",{class:"dashrow"+(w.size==="off"?" off":"")},h("span",{class:"wdi",text:icon}),h("b",{text:name}),
+    box.append(h("div",{class:"dashrow"+(w.size==="off"?" off":"")},icon?h("span",{class:"wdi",text:icon}):null,h("b",{text:name}),
       seg([["off","Off"],["compact","Small"],["full","Large"]],w.size,v=>{w.size=v;draw();}),
       h("span",{class:"arrows"},h("button",{type:"button",class:"x","aria-label":"Move up",text:"↑",disabled:i===0,onclick:()=>{draft.splice(i-1,0,draft.splice(i,1)[0]);draw();}}),h("button",{type:"button",class:"x","aria-label":"Move down",text:"↓",disabled:i===draft.length-1,onclick:()=>{draft.splice(i+1,0,draft.splice(i,1)[0]);draw();}}))));});};
   draw();
@@ -3672,7 +3672,7 @@ document.querySelectorAll(".installbtn").forEach(b=>b.addEventListener("click",i
 updateInstallUI();
 
 /* app updates. APP_VERSION is written in by build.py from sw.js; the newest version is read from sw.js on the server. */
-const APP_VERSION=Number("21")||0;
+const APP_VERSION=Number("22")||0;
 const Updates={reg:null,latest:0,checked:0,state:""}; // state: "" | "checking" | "offline" | "error"
 const updateReady=()=>Updates.latest>APP_VERSION;
 async function latestVersion(){const r=await fetch("./sw.js?check="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);
