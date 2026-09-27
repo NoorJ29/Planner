@@ -1,6 +1,6 @@
 /* ================= habits ================= */
-const HABIT_EMOJI=["💧","🏃","📚","🧘","😴","🥗","💊","🦷","🙏","✍️","🎸","🧹","🚶","💪","🌱","📵"];
-const HABIT_IDEAS=[["Drink water","💧"],["Exercise","🏃"],["Read","📚"],["Meditate","🧘"],["Sleep before 11","😴"],["Eat healthy","🥗"]];
+const HABIT_EMOJI=[];
+const HABIT_IDEAS=[["Drink water"],["Exercise"],["Read"],["Meditate"],["Sleep before 11"],["Eat healthy"]];
 function habitDue(hb,d){return !hb.days||!hb.days.length||hb.days.includes(d.getDay());}
 function habitStart(hb){const c=Number(hb.createdAt)>0?key(new Date(hb.createdAt)):todayKey();const first=Object.keys(hb.log||{}).sort()[0];return first&&first<c?first:c;}
 function streak(hb){
@@ -12,7 +12,7 @@ function streak(hb){
 function bestStreak(hb){const log=hb.log||{};let best=0,cur=0;let d=fromKey(habitStart(hb));const tk=todayKey();for(let i=0;i<2000&&key(d)<=tk;i++){const k=key(d);if(habitDue(hb,d)){if(log[k]){cur++;best=Math.max(best,cur);}else if(k!==tk)cur=0;}d=addDays(d,1);}return best;}
 function habitRate(hb,days){const log=hb.log||{};let due=0,hit=0;const start=habitStart(hb);for(let i=0;i<days;i++){const d=addDays(new Date(),-i),k=key(d);if(k<start)break;if(habitDue(hb,d)){due++;if(log[k])hit++;}}return due?hit/due:0;}
 function toggleHabit(hb,k){const log=Object.assign({},hb.log||{});if(log[k])delete log[k];else log[k]=true;Store.put("habits",Object.assign(clone(hb),{log}));}
-function newHabit(p){return Object.assign({id:uid(),name:"",emoji:"💧",color:COLORS[0],days:[],log:{},createdAt:Date.now(),archived:false},p);}
+function newHabit(p){return Object.assign({id:uid(),name:"",emoji:"",color:COLORS[0],days:[],log:{},createdAt:Date.now(),archived:false},p);}
 
 function renderHabits(main){
   const tk=todayKey(),now=new Date();
@@ -20,7 +20,7 @@ function renderHabits(main){
   const due=hs.filter(x=>habitDue(x,now)),doneN=due.filter(x=>x.log&&x.log[tk]).length;
   setHeader("Habits",hs.length?doneN+" of "+due.length+" done today":"Build routines that stick");
   if(!hs.length){
-    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:0 0 12px",text:"No habits yet. Tap one to start, or create your own."}),h("div",{class:"row",style:"justify-content:center"},HABIT_IDEAS.map(([n,e],i)=>h("button",{class:"chip",text:e+" "+n,onclick:()=>{Store.put("habits",newHabit({name:n,emoji:e,color:COLORS[i%COLORS.length]}));toast("Added "+n);}}))))));
+    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:0 0 12px",text:"No habits yet. Tap one to start, or create your own."}),h("div",{class:"row",style:"justify-content:center"},HABIT_IDEAS.map(([n],i)=>h("button",{class:"chip",text:n,onclick:()=>{Store.put("habits",newHabit({name:n,emoji:"",color:COLORS[i%COLORS.length]}));toast("Added "+n);}}))))));
   }else{
     if(due.length)main.append(h("div",{class:"sec"},bar(doneN/due.length)));
     const list=h("div",{class:"cards grid sec"});
@@ -29,7 +29,7 @@ function renderHabits(main){
       const isDue=habitDue(hb,now),on=!!(hb.log&&hb.log[tk]),st=streak(hb);
       const big=h("button",{class:"hbig"+(on?" on":"")+(!isDue&&!on?" off":""),"aria-label":(on?"Undo today: ":"Done today: ")+hb.name,"aria-pressed":String(on),onclick:()=>{toggleHabit(hb,tk);if(!on&&navigator.vibrate)navigator.vibrate(15);}});big.innerHTML=CHECK;
       list.append(h("div",{class:"hcard",style:"--c:"+hb.color},
-        h("div",{class:"htop"},h("div",{class:"hemo",text:hb.emoji}),h("button",{class:"hname",onclick:()=>openHabit(hb)},h("b",{text:hb.name}),h("span",{text:(st?"🔥 "+plural(st,"day")+" streak":"No streak yet")+(isDue?"":", rest day today")})),big),
+        h("div",{class:"htop"},h("button",{class:"hname",onclick:()=>openHabit(hb)},h("b",{text:hb.name}),h("span",{text:(st?plural(st,"day")+" streak":"No streak yet")+(isDue?"":", rest day today")})),big),
         h("div",{class:"week7"},days.map(d=>{const k=key(d),o=!!(hb.log&&hb.log[k]),du=habitDue(hb,d),before=k<habitStart(hb);
           return h("div",null,h("small",{text:d.toLocaleDateString(undefined,{weekday:"narrow"})}),h("button",{class:"hd"+(o?" on":"")+(!du&&!o?" na":"")+(before&&!o?" fut":""),"aria-label":d.toLocaleDateString(undefined,{weekday:"long",day:"numeric"})+(o?", done":", not done"),onclick:()=>toggleHabit(hb,k)}));}))));
     });
@@ -40,7 +40,6 @@ function renderHabits(main){
 function openHabit(hb){
   const isNew=!hb;const d=clone(hb||newHabit({color:COLORS[vals("habits").length%COLORS.length]}));
   const name=h("input",{class:"inp title",value:d.name,placeholder:"e.g. Walk 10,000 steps","aria-label":"Habit name"});
-  const emo=h("div",{class:"emojis"});const drawE=()=>{emo.textContent="";HABIT_EMOJI.forEach(e=>emo.append(h("button",{type:"button","aria-pressed":String(e===d.emoji),text:e,onclick:()=>{d.emoji=e;drawE();}})));};drawE();
   const sw=h("div",{class:"swatches"});const drawS=()=>{sw.textContent="";COLORS.forEach(c=>sw.append(h("button",{type:"button",class:"sw",style:"background:"+c,"aria-label":"Colour","aria-pressed":String(c===d.color),onclick:()=>{d.color=c;drawS();}})));};drawS();
   const dayBox=h("div",{class:"row"});
   const order=[1,2,3,4,5,6,0];
@@ -58,7 +57,6 @@ function openHabit(hb){
   const del=isNew?null:h("button",{class:"btn danger",text:"Delete"});
   const close=openSheet([h("h3",{text:isNew?"New habit":"Edit habit"}),name,statsEl,
     h("div",{class:"field"},h("span",{class:"lbl",text:"Which days"}),dayBox),
-    h("div",{class:"field"},h("span",{class:"lbl",text:"Icon"}),emo),
     h("div",{class:"field"},h("span",{class:"lbl",text:"Colour"}),sw),
     h("div",{class:"actions"},del,cancel,save)]);
   cancel.onclick=close;
@@ -68,7 +66,7 @@ function openHabit(hb){
 }
 
 /* ================= notes & journal ================= */
-const MOODS=[["1","😞","Rough"],["2","😕","Meh"],["3","😐","Okay"],["4","🙂","Good"],["5","😄","Great"]];
+const MOODS=[["1","","Rough"],["2","","Meh"],["3","","Okay"],["4","","Good"],["5","","Great"]];
 const moodOf=v=>MOODS.find(m=>m[0]===String(v));
 function newNote(p){return Object.assign({id:uid(),type:"note",title:"",body:"",pinned:false,createdAt:Date.now(),updatedAt:Date.now()},p);}
 function snippet(s,n){s=(s||"").replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n)+"…":s;}
@@ -87,14 +85,14 @@ function renderNotes(main){
     let jst=0;for(let i=0;i<400;i++){const k=key(addDays(new Date(),-i));if(D.notes.has("j-"+k))jst++;else if(i>0)break;}
     const m=today&&moodOf(today.mood);
     main.append(h("div",{class:"sec"},h("button",{class:"ncard",style:"padding:18px",onclick:()=>openJournal(tk)},
-      h("b",{style:"font-family:var(--display);font-size:19px",text:today?(m?m[1]+" ":"")+"Today's entry":"How was today?"}),
+      h("b",{style:"font-family:var(--display);font-size:19px",text:today?"Today's entry":"How was today?"}),
       h("p",{text:today?snippet(today.body,160)||"Tap to keep writing.":"Tap to write today's entry. A few lines is plenty."}),
-      jst?h("div",{class:"small muted",text:"✍️ "+plural(jst,"day")+" in a row"}):null)));
+      jst?h("div",{class:"small muted",text:plural(jst,"day")+" in a row"}):null)));
     const past=jj.filter(j=>j.date!==tk);
     if(past.length){
       let curM="";const box=h("div",{class:"cards"});
       past.slice(0,120).forEach(j=>{const mk=j.date.slice(0,7);if(mk!==curM){curM=mk;box.append(h("div",{class:"sgroup",style:"margin:10px 2px 0",text:fromKey(j.date).toLocaleDateString(undefined,{month:"long",year:"numeric"})}));}
-        const mm=moodOf(j.mood);box.append(h("button",{class:"ncard",onclick:()=>openJournal(j.date)},h("b",{text:(mm?mm[1]+" ":"")+fromKey(j.date).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),j.body?h("p",{text:snippet(j.body,140)}):null));});
+        box.append(h("button",{class:"ncard",onclick:()=>openJournal(j.date)},h("b",{text:fromKey(j.date).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),j.body?h("p",{text:snippet(j.body,140)}):null));});
       main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Past entries"})),box));
     }
   }
@@ -120,7 +118,7 @@ function renderNoteFolder(main,nn){
   const top=h("div",{class:"fbar"},crumbs,f?h("button",{class:"x fmenu","aria-label":"Folder options",text:"⋯",onclick:()=>openFolderMenu(f)}):null);
   const count=id=>{const t=folderTree(id);return nn.filter(n=>t.has(noteFolderOf(n))).length;};
   const kids=folderKids(cf);
-  const tiles=h("div",{class:"ftiles"},kids.map(k=>{const c=count(k.id);return h("button",{class:"ftile",style:"--c:"+(k.color||COLORS[0]),onclick:()=>openFolder(k.id)},h("i",{"aria-hidden":"true",text:"📁"}),h("b",{text:k.name}),h("span",{text:c?plural(c,"note"):"Empty"}));}),
+  const tiles=h("div",{class:"ftiles"},kids.map(k=>{const c=count(k.id);return h("button",{class:"ftile",style:"--c:"+(k.color||COLORS[0]),onclick:()=>openFolder(k.id)},h("b",{text:k.name}),h("span",{text:c?plural(c,"note"):"Empty"}));}),
     h("button",{class:"ftile fnew",onclick:()=>openFolderEdit(null,cf)},h("i",{"aria-hidden":"true",text:"＋"}),h("b",{text:"Folder"}),h("span",{text:cf?"Inside "+f.name:"New folder"})));
   const deep=h("label",{class:"deepsw"},h("input",{type:"checkbox",checked:UI.noteDeep,"aria-label":cf?"Include subfolders":"Show notes from all folders",onchange:e=>{UI.noteDeep=e.target.checked;lsSet("planner.noteDeep",UI.noteDeep?"1":"0");render();}}),h("span",{text:cf?"Include subfolders":"Show notes from all folders"}));
   const list=notesInView(nn,cf).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updatedAt-a.updatedAt);
@@ -128,8 +126,8 @@ function renderNoteFolder(main,nn){
   if(!list.length)body.append(h("div",{class:"sec"},h("div",{class:"empty",text:nn.length?(cf?"No notes in "+f.name+" yet.":UI.noteDeep?"No notes yet.":"No notes outside folders. Open a folder above, or switch on “Show notes from all folders”."):"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Nova to save it here."})));
   else{
     const shown=UI.expanded.has("notes")?list:list.slice(0,40);
-    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n),cp=checkProgress(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
-      h("div",{class:"small muted",text:(nf!==cf&&nf?"📁 "+folderLabel(nf)+" · ":"")+(cp?"☑ "+cp.d+"/"+cp.t+" · ":"")+"Edited "+ago(n.updatedAt)}));})));
+    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n),cp=checkProgress(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"Pinned: ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
+      h("div",{class:"small muted",text:(nf!==cf&&nf?folderLabel(nf)+" · ":"")+(cp?cp.d+"/"+cp.t+" steps · ":"")+"Edited "+ago(n.updatedAt)}));})));
     if(shown.length<list.length)body.append(h("button",{class:"linkbtn",text:"Show all "+list.length,onclick:()=>{UI.expanded.add("notes");render();}}));
   }
   if(!UI.desktop){main.append(body);return;}
@@ -160,14 +158,14 @@ function openFolderEdit(f,parentId){
 function pickFolder(title,current,exclude,onPick){
   const list=h("div",{class:"fpick"});
   const opt=(id,label,depth)=>list.append(h("button",{type:"button",style:"--d:"+depth,"aria-pressed":String(id===current),disabled:exclude.has(id),onclick:()=>{close();onPick(id);}},label));
-  opt("",current===undefined?"Top level":"📁 No folder (top level)",0);
-  const walk=(pid,depth)=>folderKids(pid).forEach(k=>{opt(k.id,"📁 "+k.name,depth);walk(k.id,depth+1);});walk("",1);
+  opt("",current===undefined?"Top level":"No folder (top level)",0);
+  const walk=(pid,depth)=>folderKids(pid).forEach(k=>{opt(k.id,k.name,depth);walk(k.id,depth+1);});walk("",1);
   if(current!==undefined&&!D.folders.size)list.append(h("p",{class:"small muted",text:"No folders yet. Create one from the Notes page with + Folder."}));
   const close=openSheet([h("h3",{text:title}),list,h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}))]);
 }
 function openFolderMenu(f){
   const act=(label,fn)=>h("button",{class:"mi",onclick:()=>{close();fn();}},h("b",{text:label}));
-  const close=openSheet([h("h3",{text:"📁 "+f.name}),h("div",{class:"menu alist"},
+  const close=openSheet([h("h3",{text:f.name}),h("div",{class:"menu alist"},
     act("Rename or change colour",()=>openFolderEdit(f)),
     act("Move to another folder",()=>{const ex=folderTree(f.id);if(!f.parentId)ex.add("");pickFolder("Move “"+f.name+"” to…",undefined,ex,to=>{Store.put("folders",Object.assign(clone(f),{parentId:to}));openFolder(f.id);toast("Moved to "+(to?D.folders.get(to).name:"the top level"));});}),
     act("Delete folder",()=>deleteFolder(f)))]);
@@ -217,9 +215,9 @@ function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,e
 }
 function openNote(n){
   let cur=n?clone(n):null,folderId=cur?noteFolderOf(cur):(UI.tab==="notes"?curFolder():"");
-  const pin=h("button",{class:"chip","aria-pressed":String(!!(cur&&cur.pinned)),text:"📌 Pin"});
+  const pin=h("button",{class:"chip","aria-pressed":String(!!(cur&&cur.pinned)),text:"Pin"});
   const fchip=h("button",{class:"chip fchip",title:"Move to a folder"});
-  const drawF=()=>{fchip.textContent="📁 "+(folderId?folderLabel(folderId):"No folder");};drawF();
+  const drawF=()=>{fchip.textContent=folderId?folderLabel(folderId):"No folder";};drawF();
   fchip.onclick=()=>pickFolder("Move note to…",folderId,new Set(),id=>{folderId=id;drawF();if(cur){cur.folderId=id;Store.put("notes",cur);}});
   const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",note:cur,bodyPh:"Start writing…",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:n?"Note":"New note"}),

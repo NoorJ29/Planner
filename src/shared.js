@@ -27,13 +27,13 @@ function renderShared(main){
   if(!Shared.ready)main.append(h("div",{class:"loading",text:"Loading shared lists…"}));
   else if(!lists.length)main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"Create a list, then invite your family with a code. Everyone sees changes instantly: tick off milk at the shop and it's gone from their list too."})));
   else main.append(h("div",{class:"cards grid sec"},lists.map(l=>{const its=itemsOf(l.id),left=its.filter(i=>!i.done).length;
-    return h("button",{class:"ncard",onclick:()=>{UI.sharedList=l.id;render();window.scrollTo(0,0);}},h("b",{text:(l.kind==="todo"?"✅ ":"🛒 ")+l.name}),h("p",{text:left?plural(left,"item")+" left":"All done"}),avatars(l));})));
+    return h("button",{class:"ncard",onclick:()=>{UI.sharedList=l.id;render();window.scrollTo(0,0);}},h("b",{text:l.name}),h("p",{text:left?plural(left,"item")+" left":"All done"}),avatars(l));})));
 }
 function avatars(l){const ids=l.members||[];return h("div",{class:"avs"},ids.slice(0,6).map(id=>{const m=(l.memberInfo||{})[id]||{};const n=m.name||"?";return h("span",{class:"av",style:"--c:"+colorFor(id),title:n+(id===(Store.user||{}).uid?" (you)":""),text:n.charAt(0).toUpperCase()});}),ids.length>6?h("span",{class:"small muted",text:"+"+(ids.length-6)}):null,h("span",{class:"small muted",text:plural(ids.length,"member")}));}
 function renderSharedList(main,L){
   const its=itemsOf(L.id).sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.createdAt||0)-(b.createdAt||0));const uid=Store.user.uid;
   main.append(h("div",{class:"row",style:"margin-top:12px;justify-content:space-between"},h("button",{class:"back",text:"‹ Shared lists",onclick:()=>{UI.sharedList=null;render();}}),h("button",{class:"btn primary",style:"padding:9px 16px",text:"Invite",onclick:()=>invite(L)})));
-  main.append(h("div",{class:"card sec"},h("b",{style:"font-family:var(--display);font-size:20px;display:block",text:(L.kind==="todo"?"✅ ":"🛒 ")+L.name}),avatars(L)));
+  main.append(h("div",{class:"card sec"},h("b",{style:"font-family:var(--display);font-size:20px;display:block",text:L.name}),avatars(L)));
   if(!its.length)main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"Empty so far. Type below to add "+(L.kind==="todo"?"a to-do":"an item, e.g. 2 kg rice")+"."})));
   else main.append(h("div",{class:"sec"},h("ul",{class:"tasks"},its.map(it=>{
     const cb=h("button",{class:"check","aria-label":(it.done?"Untick ":"Tick ")+it.name,onclick:()=>fbDb.collection("shared").doc(L.id).collection("items").doc(it.id).update({done:!it.done,doneBy:it.done?"":meInfo().name}).catch(sharedFail)});cb.innerHTML=CHECK;
@@ -56,7 +56,7 @@ function addSharedItem(v){
 function openSharedNew(){
   let kind="shopping";const name=h("input",{class:"inp title",placeholder:"e.g. Family groceries, House jobs","aria-label":"List name"});
   const go=h("button",{class:"btn primary",text:"Create list"});
-  const close=openSheet([h("h3",{text:"New shared list"}),name,h("div",{class:"field"},h("span",{class:"lbl",text:"Type"}),seg([["shopping","🛒 Shopping"],["todo","✅ To-do"]],kind,v=>{kind=v;})),h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
+  const close=openSheet([h("h3",{text:"New shared list"}),name,h("div",{class:"field"},h("span",{class:"lbl",text:"Type"}),seg([["shopping","Shopping"],["todo","To-do"]],kind,v=>{kind=v;})),h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
   go.onclick=async()=>{const n=name.value.trim();if(!n){name.focus();return;}go.disabled=true;const uid=Store.user.uid;const ref=fbDb.collection("shared").doc();
     try{await ref.set({name:n,kind,owner:uid,members:[uid],memberInfo:{[uid]:meInfo()},createdAt:Date.now()});close();UI.sharedList=ref.id;Shared.lists.set(ref.id,{id:ref.id,name:n,kind,owner:uid,members:[uid],memberInfo:{[uid]:meInfo()}});render();setTimeout(()=>invite(Shared.lists.get(ref.id)),250);}
     catch(e){sharedFail(e);go.disabled=false;}};

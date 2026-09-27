@@ -14,13 +14,13 @@ const DEFAULT_LISTS = [
   { id: "home", name: "Home", color: "#E9A21F" },
 ];
 const DEFAULT_CATS = [
-  { id: "food", name: "Food", emoji: "🍔" },
-  { id: "transport", name: "Transport", emoji: "🚌" },
-  { id: "shopping", name: "Shopping", emoji: "🛍️" },
-  { id: "bills", name: "Bills", emoji: "💡" },
-  { id: "fun", name: "Fun", emoji: "🎉" },
-  { id: "health", name: "Health", emoji: "💊" },
-  { id: "other", name: "Other", emoji: "📦" },
+  { id: "food", name: "Food", emoji: "" },
+  { id: "transport", name: "Transport", emoji: "" },
+  { id: "shopping", name: "Shopping", emoji: "" },
+  { id: "bills", name: "Bills", emoji: "" },
+  { id: "fun", name: "Fun", emoji: "" },
+  { id: "health", name: "Health", emoji: "" },
+  { id: "other", name: "Other", emoji: "" },
 ];
 const COLS = [
   "tasks",
@@ -45,9 +45,9 @@ const SET_DEFAULT = {
   currency: "",
   currencySymbol: "",
   linkCats: [
-    { id: "general", name: "General", emoji: "🌐", color: "#2F86C9" },
-    { id: "work", name: "Work", emoji: "💼", color: "#0F7B6C" },
-    { id: "fun", name: "Fun", emoji: "🎬", color: "#D8574B" },
+    { id: "general", name: "General", emoji: "", color: "#2F86C9" },
+    { id: "work", name: "Work", emoji: "", color: "#0F7B6C" },
+    { id: "fun", name: "Fun", emoji: "", color: "#D8574B" },
   ],
 };
 const LS1 = "planner.v1",
@@ -1153,7 +1153,7 @@ const Notify = {
       d.setHours(9, 0, 0, 0);
       add(d.getTime(), "c:" + c.id + ":" + n, () =>
         this.show(
-          (c.emoji || "🎉") + " Today: " + c.title,
+          "Today: " + c.title,
           "Your countdown has arrived.",
           "cd-" + c.id,
         ),
