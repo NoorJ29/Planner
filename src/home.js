@@ -1,8 +1,8 @@
 /* ================= home dashboard ================= */
 const WIDGETS=[
-  ["today","","Today's tasks"],["next","🕒","Next up"],["habits","🔥","Habits"],["focus","⏱️","Focus timer"],
-  ["money","💰","Money this month"],["bills","🔁","Upcoming bills"],["countdowns","🎉","Countdowns"],["journal","✍️","Journal"],
-  ["goals","🎯","Goals"],["links","🔗","Quick links"],["shopping","🛒","Shopping list"],["week","📊","This week"],["note","📌","Pinned note"]];
+  ["today","","Today's tasks"],["next","","Next up"],["habits","","Habits"],["focus","","Focus timer"],
+  ["money","","Money this month"],["bills","","Upcoming bills"],["countdowns","","Countdowns"],["journal","","Journal"],
+  ["goals","","Goals"],["links","","Quick links"],["shopping","","Shopping list"],["week","","This week"],["note","","Pinned note"]];
 const WMAP=Object.fromEntries(WIDGETS.map(w=>[w[0],w]));
 const DEFAULT_DASH=[["today","full"],["next","full"],["habits","full"],["focus","compact"],["money","compact"],["countdowns","full"],["journal","compact"],["bills","compact"],["links","full"],["goals","off"],["shopping","off"],["week","off"],["note","off"]];
 function dashConfig(){
@@ -33,7 +33,7 @@ const W={
   habits(size){const now=new Date(),tk=todayKey(),hs=vals("habits").filter(x=>!x.archived&&habitDue(x,now)),d=hs.filter(x=>x.log&&x.log[tk]).length;
     if(size==="compact")return stat(d+"/"+hs.length,"habits done today",()=>goTab("habits"));
     if(!hs.length)return h("p",{class:"muted small",text:"No habits due today."});
-    return h("div",{class:"hmini"},hs.map(hb=>{const on=!!(hb.log&&hb.log[tk]);const b=h("button",{class:"hbig"+(on?" on":""),style:"--c:"+hb.color,"aria-label":(on?"Undo ":"Done: ")+hb.name,onclick:()=>toggleHabit(hb,tk)});b.innerHTML=CHECK;return h("div",{class:"hm"},b,h("span",{text:hb.emoji+" "+hb.name}));}));},
+    return h("div",{class:"hmini"},hs.map(hb=>{const on=!!(hb.log&&hb.log[tk]);const b=h("button",{class:"hbig"+(on?" on":""),style:"--c:"+hb.color,"aria-label":(on?"Undo ":"Done: ")+hb.name,onclick:()=>toggleHabit(hb,tk)});b.innerHTML=CHECK;return h("div",{class:"hm"},b,h("span",{text:hb.name}));}));},
   focus(size){const st=focusState(),today=focusToday();
     if(size==="compact")return stat(st&&!st.done?mmss(focusRemaining(st)):hmins(today),st&&!st.done?(st.paused?"paused":"left in session"):"focused today",()=>openFocus());
     return h("div",{class:"row",style:"justify-content:space-between"},h("div",null,h("b",{style:"font-family:var(--display);font-size:26px",text:hmins(today)}),h("div",{class:"small muted",text:"focused today"})),h("button",{class:"btn primary",text:st?"Open timer":"Start focusing",onclick:()=>openFocus()}));},
@@ -43,17 +43,17 @@ const W={
       h("div",{class:"row",style:"margin-top:12px"},h("button",{class:"btn primary",text:"+ Add expense",onclick:()=>openExpense(null)})));},
   bills(size){const soon=key(addDays(new Date(),30)),up=vals("subs").filter(s=>!s.paused&&s.nextDate&&s.nextDate<=soon).sort((a,b)=>a.nextDate<b.nextDate?-1:1);
     if(size==="compact")return up.length?stat(relLabel(up[0].nextDate),up[0].name+", "+money(up[0].amount),()=>goTab("money")):stat("–","No bills due soon",()=>goTab("money"));
-    return up.length?h("div",{class:"box"},up.slice(0,4).map(s=>h("button",{class:"txn",onclick:()=>openSub(s)},h("span",{class:"em",text:s.emoji||"🔁"}),h("span",{class:"mid"},h("b",{text:s.name}),h("span",{class:"small muted",text:relLabel(s.nextDate)})),h("span",{class:"amt",text:money(s.amount)})))):h("p",{class:"muted small",text:"No bills in the next 30 days."});},
+    return up.length?h("div",{class:"box"},up.slice(0,4).map(s=>h("button",{class:"txn",onclick:()=>openSub(s)},h("span",{class:"mid"},h("b",{text:s.name}),h("span",{class:"small muted",text:relLabel(s.nextDate)})),h("span",{class:"amt",text:money(s.amount)})))):h("p",{class:"muted small",text:"No bills in the next 30 days."});},
   countdowns(size){const c=countdownsSorted().filter(x=>x.days>=0);
-    if(size==="compact")return c.length?stat(c[0].days===0?"Today":c[0].days+"d",c[0].emoji+" "+c[0].title,()=>openCountdown(c[0])):stat("–","No countdowns",()=>{UI.tab="more";UI.page="countdowns";render();});
+    if(size==="compact")return c.length?stat(c[0].days===0?"Today":c[0].days+"d",c[0].title,()=>openCountdown(c[0])):stat("–","No countdowns",()=>{UI.tab="more";UI.page="countdowns";render();});
     return c.length?h("div",{class:"cards"},c.slice(0,3).map(x=>cdCard(x,true))):h("p",{class:"muted small",text:"Nothing to count down to yet."});},
   journal(size){const j=D.notes.get("j-"+todayKey()),m=j&&moodOf(j.mood);
-    if(size==="compact")return stat(m?m[1]:"✍️",j?"Today's entry written":"Write today's entry",()=>openJournal(todayKey()));
-    return h("div",null,h("div",{class:"moods"},MOODS.map(([v,e,l])=>h("button",{"aria-pressed":String(!!j&&String(j.mood)===v),onclick:()=>{const cur=D.notes.get("j-"+todayKey())||newNote({id:"j-"+todayKey(),type:"journal",date:todayKey()});Store.put("notes",Object.assign(clone(cur),{mood:v,updatedAt:Date.now()}));}},e,h("small",{text:l})))),
+    if(size==="compact")return stat(m?m[1]:"Journal",j?"Today's entry written":"Write today's entry",()=>openJournal(todayKey()));
+    return h("div",null,h("div",{class:"moods"},MOODS.map(([v,e,l])=>h("button",{"aria-pressed":String(!!j&&String(j.mood)===v),onclick:()=>{const cur=D.notes.get("j-"+todayKey())||newNote({id:"j-"+todayKey(),type:"journal",date:todayKey()});Store.put("notes",Object.assign(clone(cur),{mood:v,updatedAt:Date.now()}));}},h("small",{text:l})))),
       h("button",{class:"linkbtn",text:j&&j.body?"Keep writing today's entry":"Write today's entry",onclick:()=>openJournal(todayKey())}));},
   goals(size){const g=vals("goals").filter(x=>!x.done);
     if(size==="compact"){const avg=g.length?g.reduce((a,x)=>a+goalProgress(x).pct,0)/g.length:0;return stat(g.length?Math.round(avg*100)+"%":"–",g.length?"average across "+plural(g.length,"goal"):"No goals yet",()=>{UI.tab="more";UI.page="goals";render();});}
-    return g.length?h("div",{class:"glist"},g.slice(0,4).map(x=>{const p=goalProgress(x);return h("button",{class:"grow",onclick:()=>openGoal(x)},h("span",{class:"row",style:"justify-content:space-between"},h("b",{text:"🎯 "+x.title}),h("span",{class:"small muted",text:Math.round(p.pct*100)+"%"})),bar(p.pct));})):h("p",{class:"muted small",text:"No active goals."});},
+    return g.length?h("div",{class:"glist"},g.slice(0,4).map(x=>{const p=goalProgress(x);return h("button",{class:"grow",onclick:()=>openGoal(x)},h("span",{class:"row",style:"justify-content:space-between"},h("b",{text:x.title}),h("span",{class:"small muted",text:Math.round(p.pct*100)+"%"})),bar(p.pct));})):h("p",{class:"muted small",text:"No active goals."});},
   links(size){const ls=vals("links").sort((a,b)=>(b.visits||0)-(a.visits||0)||(a.name||"").localeCompare(b.name||"")).slice(0,size==="compact"?4:8);
     return ls.length?h("div",{class:"lgrid wlinks"},ls.map(linkTile)):h("p",{class:"muted small",text:"Save websites in Links and your favourites show here."});},
   shopping(size){const L=SET.shopLists.find(l=>l.id===UI.shopList)||SET.shopLists[0],its=vals("shop").filter(i=>i.listId===L.id&&!i.done);

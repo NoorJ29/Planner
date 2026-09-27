@@ -800,7 +800,7 @@ body.appin .dock{animation-delay:.08s}
     <button class="installbtn side-install" id="sideInstall" hidden><span aria-hidden="true">⬇</span> Install Nova app</button>
     <button class="sync pcard" aria-label="Sync and account"><b class="pav" aria-hidden="true"><em></em><i></i></b><span>Starting…</span><small class="pmail"></small><em class="pchev" aria-hidden="true">›</em><u class="tip" aria-hidden="true"></u></button>
     <div class="side-set">
-      <button id="sideSettings" data-tab="settings"><span class="ico emo">⚙️</span><span>Settings</span></button>
+      <button id="sideSettings" data-tab="settings"><span>Settings</span></button>
       <button class="qbtn" id="sideGuide" aria-label="Guide and shortcuts" title="Guide and shortcuts (?)">?</button>
     </div>
   </div>
@@ -844,13 +844,13 @@ const DEFAULT_LISTS = [
   { id: "home", name: "Home", color: "#E9A21F" },
 ];
 const DEFAULT_CATS = [
-  { id: "food", name: "Food", emoji: "🍔" },
-  { id: "transport", name: "Transport", emoji: "🚌" },
-  { id: "shopping", name: "Shopping", emoji: "🛍️" },
-  { id: "bills", name: "Bills", emoji: "💡" },
-  { id: "fun", name: "Fun", emoji: "🎉" },
-  { id: "health", name: "Health", emoji: "💊" },
-  { id: "other", name: "Other", emoji: "📦" },
+  { id: "food", name: "Food", emoji: "" },
+  { id: "transport", name: "Transport", emoji: "" },
+  { id: "shopping", name: "Shopping", emoji: "" },
+  { id: "bills", name: "Bills", emoji: "" },
+  { id: "fun", name: "Fun", emoji: "" },
+  { id: "health", name: "Health", emoji: "" },
+  { id: "other", name: "Other", emoji: "" },
 ];
 const COLS = [
   "tasks",
@@ -875,9 +875,9 @@ const SET_DEFAULT = {
   currency: "",
   currencySymbol: "",
   linkCats: [
-    { id: "general", name: "General", emoji: "🌐", color: "#2F86C9" },
-    { id: "work", name: "Work", emoji: "💼", color: "#0F7B6C" },
-    { id: "fun", name: "Fun", emoji: "🎬", color: "#D8574B" },
+    { id: "general", name: "General", emoji: "", color: "#2F86C9" },
+    { id: "work", name: "Work", emoji: "", color: "#0F7B6C" },
+    { id: "fun", name: "Fun", emoji: "", color: "#D8574B" },
   ],
 };
 const LS1 = "planner.v1",
@@ -1983,7 +1983,7 @@ const Notify = {
       d.setHours(9, 0, 0, 0);
       add(d.getTime(), "c:" + c.id + ":" + n, () =>
         this.show(
-          (c.emoji || "🎉") + " Today: " + c.title,
+          "Today: " + c.title,
           "Your countdown has arrived.",
           "cd-" + c.id,
         ),
@@ -2053,10 +2053,10 @@ function taskRow(t,opts){
   if(t.time)meta.push(h("span",{text:fmtTime(t.time)}));
   if(l&&!opts.hideList)meta.push(h("span",{text:l.name}));
   if(t.repeat)meta.push(h("span",{text:"↻ "+REPEAT_LABEL[t.repeat]}));
-  if(t.subtasks&&t.subtasks.length)meta.push(h("span",{text:"☑ "+t.subtasks.filter(s=>s.done).length+"/"+t.subtasks.length}));
-  if(t.remind!==""&&t.remind!=null&&!t.done)meta.push(h("span",{text:"🔔","aria-label":"Reminder set"}));
+  if(t.subtasks&&t.subtasks.length)meta.push(h("span",{text:t.subtasks.filter(s=>s.done).length+"/"+t.subtasks.length+" steps"}));
+  if(t.remind!==""&&t.remind!=null&&!t.done)meta.push(h("span",{text:"Reminder","aria-label":"Reminder set"}));
   {const fm=taskFocus(t.id);if(fm)meta.push(h("span",{text:"⏱ "+hmins(fm)}));}
-  if(t.goalId&&D.goals.has(t.goalId))meta.push(h("span",{text:"🎯 "+D.goals.get(t.goalId).title}));
+  if(t.goalId&&D.goals.has(t.goalId))meta.push(h("span",{text:D.goals.get(t.goalId).title}));
   if(opts.compact)return h("li",{class:"task compact"+(t.done?" done":"")},cb, // one line: title, then time
     h("button",{class:"tbody",onclick:()=>openTask(t)},h("span",{class:"ttitle",text:t.title})),t.time?h("span",{class:"ctime",text:fmtTime(t.time)}):null,
     t.priority?h("span",{class:"pri"+(t.priority===2?" p2":""),text:t.priority===2?"!!":"!"}):null);
@@ -2261,7 +2261,7 @@ function renderSchedule(main){
 
   const sec=h("section",{class:"sec"});
   sec.append(h("div",{class:"sec-h"},h("h2",{text:"Anytime"}),h("span",{class:"n",text:untimed.length?"Tap one to give it a time":""})));
-  if(allDayEvs.length)sec.append(h("div",{class:"anytime",style:"margin-bottom:8px"},allDayEvs.map(e=>h("a",{class:"chip evchip",href:e.link,target:"_blank",rel:"noopener noreferrer",text:"📅 "+e.title}))));
+  if(allDayEvs.length)sec.append(h("div",{class:"anytime",style:"margin-bottom:8px"},allDayEvs.map(e=>h("a",{class:"chip evchip",href:e.link,target:"_blank",rel:"noopener noreferrer",text:e.title}))));
   sec.append(untimed.length?h("div",{class:"anytime"},untimed.map(t=>{const l=listById(t.listId);return h("button",{class:"chip",onclick:()=>openTask(t)},h("span",{class:"ldot",style:"background:"+(l?l.color:"var(--muted)")}),t.title);})):h("div",{class:"small muted",text:"No unscheduled tasks for this day."}));
   main.append(sec);
 
@@ -2291,8 +2291,8 @@ function renderSchedule(main){
 }
 
 /* ================= habits ================= */
-const HABIT_EMOJI=["💧","🏃","📚","🧘","😴","🥗","💊","🦷","🙏","✍️","🎸","🧹","🚶","💪","🌱","📵"];
-const HABIT_IDEAS=[["Drink water","💧"],["Exercise","🏃"],["Read","📚"],["Meditate","🧘"],["Sleep before 11","😴"],["Eat healthy","🥗"]];
+const HABIT_EMOJI=[];
+const HABIT_IDEAS=[["Drink water"],["Exercise"],["Read"],["Meditate"],["Sleep before 11"],["Eat healthy"]];
 function habitDue(hb,d){return !hb.days||!hb.days.length||hb.days.includes(d.getDay());}
 function habitStart(hb){const c=Number(hb.createdAt)>0?key(new Date(hb.createdAt)):todayKey();const first=Object.keys(hb.log||{}).sort()[0];return first&&first<c?first:c;}
 function streak(hb){
@@ -2304,7 +2304,7 @@ function streak(hb){
 function bestStreak(hb){const log=hb.log||{};let best=0,cur=0;let d=fromKey(habitStart(hb));const tk=todayKey();for(let i=0;i<2000&&key(d)<=tk;i++){const k=key(d);if(habitDue(hb,d)){if(log[k]){cur++;best=Math.max(best,cur);}else if(k!==tk)cur=0;}d=addDays(d,1);}return best;}
 function habitRate(hb,days){const log=hb.log||{};let due=0,hit=0;const start=habitStart(hb);for(let i=0;i<days;i++){const d=addDays(new Date(),-i),k=key(d);if(k<start)break;if(habitDue(hb,d)){due++;if(log[k])hit++;}}return due?hit/due:0;}
 function toggleHabit(hb,k){const log=Object.assign({},hb.log||{});if(log[k])delete log[k];else log[k]=true;Store.put("habits",Object.assign(clone(hb),{log}));}
-function newHabit(p){return Object.assign({id:uid(),name:"",emoji:"💧",color:COLORS[0],days:[],log:{},createdAt:Date.now(),archived:false},p);}
+function newHabit(p){return Object.assign({id:uid(),name:"",emoji:"",color:COLORS[0],days:[],log:{},createdAt:Date.now(),archived:false},p);}
 
 function renderHabits(main){
   const tk=todayKey(),now=new Date();
@@ -2312,7 +2312,7 @@ function renderHabits(main){
   const due=hs.filter(x=>habitDue(x,now)),doneN=due.filter(x=>x.log&&x.log[tk]).length;
   setHeader("Habits",hs.length?doneN+" of "+due.length+" done today":"Build routines that stick");
   if(!hs.length){
-    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:0 0 12px",text:"No habits yet. Tap one to start, or create your own."}),h("div",{class:"row",style:"justify-content:center"},HABIT_IDEAS.map(([n,e],i)=>h("button",{class:"chip",text:e+" "+n,onclick:()=>{Store.put("habits",newHabit({name:n,emoji:e,color:COLORS[i%COLORS.length]}));toast("Added "+n);}}))))));
+    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:0 0 12px",text:"No habits yet. Tap one to start, or create your own."}),h("div",{class:"row",style:"justify-content:center"},HABIT_IDEAS.map(([n],i)=>h("button",{class:"chip",text:n,onclick:()=>{Store.put("habits",newHabit({name:n,emoji:"",color:COLORS[i%COLORS.length]}));toast("Added "+n);}}))))));
   }else{
     if(due.length)main.append(h("div",{class:"sec"},bar(doneN/due.length)));
     const list=h("div",{class:"cards grid sec"});
@@ -2321,7 +2321,7 @@ function renderHabits(main){
       const isDue=habitDue(hb,now),on=!!(hb.log&&hb.log[tk]),st=streak(hb);
       const big=h("button",{class:"hbig"+(on?" on":"")+(!isDue&&!on?" off":""),"aria-label":(on?"Undo today: ":"Done today: ")+hb.name,"aria-pressed":String(on),onclick:()=>{toggleHabit(hb,tk);if(!on&&navigator.vibrate)navigator.vibrate(15);}});big.innerHTML=CHECK;
       list.append(h("div",{class:"hcard",style:"--c:"+hb.color},
-        h("div",{class:"htop"},h("div",{class:"hemo",text:hb.emoji}),h("button",{class:"hname",onclick:()=>openHabit(hb)},h("b",{text:hb.name}),h("span",{text:(st?"🔥 "+plural(st,"day")+" streak":"No streak yet")+(isDue?"":", rest day today")})),big),
+        h("div",{class:"htop"},h("button",{class:"hname",onclick:()=>openHabit(hb)},h("b",{text:hb.name}),h("span",{text:(st?plural(st,"day")+" streak":"No streak yet")+(isDue?"":", rest day today")})),big),
         h("div",{class:"week7"},days.map(d=>{const k=key(d),o=!!(hb.log&&hb.log[k]),du=habitDue(hb,d),before=k<habitStart(hb);
           return h("div",null,h("small",{text:d.toLocaleDateString(undefined,{weekday:"narrow"})}),h("button",{class:"hd"+(o?" on":"")+(!du&&!o?" na":"")+(before&&!o?" fut":""),"aria-label":d.toLocaleDateString(undefined,{weekday:"long",day:"numeric"})+(o?", done":", not done"),onclick:()=>toggleHabit(hb,k)}));}))));
     });
@@ -2332,7 +2332,6 @@ function renderHabits(main){
 function openHabit(hb){
   const isNew=!hb;const d=clone(hb||newHabit({color:COLORS[vals("habits").length%COLORS.length]}));
   const name=h("input",{class:"inp title",value:d.name,placeholder:"e.g. Walk 10,000 steps","aria-label":"Habit name"});
-  const emo=h("div",{class:"emojis"});const drawE=()=>{emo.textContent="";HABIT_EMOJI.forEach(e=>emo.append(h("button",{type:"button","aria-pressed":String(e===d.emoji),text:e,onclick:()=>{d.emoji=e;drawE();}})));};drawE();
   const sw=h("div",{class:"swatches"});const drawS=()=>{sw.textContent="";COLORS.forEach(c=>sw.append(h("button",{type:"button",class:"sw",style:"background:"+c,"aria-label":"Colour","aria-pressed":String(c===d.color),onclick:()=>{d.color=c;drawS();}})));};drawS();
   const dayBox=h("div",{class:"row"});
   const order=[1,2,3,4,5,6,0];
@@ -2350,7 +2349,6 @@ function openHabit(hb){
   const del=isNew?null:h("button",{class:"btn danger",text:"Delete"});
   const close=openSheet([h("h3",{text:isNew?"New habit":"Edit habit"}),name,statsEl,
     h("div",{class:"field"},h("span",{class:"lbl",text:"Which days"}),dayBox),
-    h("div",{class:"field"},h("span",{class:"lbl",text:"Icon"}),emo),
     h("div",{class:"field"},h("span",{class:"lbl",text:"Colour"}),sw),
     h("div",{class:"actions"},del,cancel,save)]);
   cancel.onclick=close;
@@ -2360,7 +2358,7 @@ function openHabit(hb){
 }
 
 /* ================= notes & journal ================= */
-const MOODS=[["1","😞","Rough"],["2","😕","Meh"],["3","😐","Okay"],["4","🙂","Good"],["5","😄","Great"]];
+const MOODS=[["1","","Rough"],["2","","Meh"],["3","","Okay"],["4","","Good"],["5","","Great"]];
 const moodOf=v=>MOODS.find(m=>m[0]===String(v));
 function newNote(p){return Object.assign({id:uid(),type:"note",title:"",body:"",pinned:false,createdAt:Date.now(),updatedAt:Date.now()},p);}
 function snippet(s,n){s=(s||"").replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n)+"…":s;}
@@ -2379,14 +2377,14 @@ function renderNotes(main){
     let jst=0;for(let i=0;i<400;i++){const k=key(addDays(new Date(),-i));if(D.notes.has("j-"+k))jst++;else if(i>0)break;}
     const m=today&&moodOf(today.mood);
     main.append(h("div",{class:"sec"},h("button",{class:"ncard",style:"padding:18px",onclick:()=>openJournal(tk)},
-      h("b",{style:"font-family:var(--display);font-size:19px",text:today?(m?m[1]+" ":"")+"Today's entry":"How was today?"}),
+      h("b",{style:"font-family:var(--display);font-size:19px",text:today?"Today's entry":"How was today?"}),
       h("p",{text:today?snippet(today.body,160)||"Tap to keep writing.":"Tap to write today's entry. A few lines is plenty."}),
-      jst?h("div",{class:"small muted",text:"✍️ "+plural(jst,"day")+" in a row"}):null)));
+      jst?h("div",{class:"small muted",text:plural(jst,"day")+" in a row"}):null)));
     const past=jj.filter(j=>j.date!==tk);
     if(past.length){
       let curM="";const box=h("div",{class:"cards"});
       past.slice(0,120).forEach(j=>{const mk=j.date.slice(0,7);if(mk!==curM){curM=mk;box.append(h("div",{class:"sgroup",style:"margin:10px 2px 0",text:fromKey(j.date).toLocaleDateString(undefined,{month:"long",year:"numeric"})}));}
-        const mm=moodOf(j.mood);box.append(h("button",{class:"ncard",onclick:()=>openJournal(j.date)},h("b",{text:(mm?mm[1]+" ":"")+fromKey(j.date).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),j.body?h("p",{text:snippet(j.body,140)}):null));});
+        box.append(h("button",{class:"ncard",onclick:()=>openJournal(j.date)},h("b",{text:fromKey(j.date).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}),j.body?h("p",{text:snippet(j.body,140)}):null));});
       main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Past entries"})),box));
     }
   }
@@ -2412,7 +2410,7 @@ function renderNoteFolder(main,nn){
   const top=h("div",{class:"fbar"},crumbs,f?h("button",{class:"x fmenu","aria-label":"Folder options",text:"⋯",onclick:()=>openFolderMenu(f)}):null);
   const count=id=>{const t=folderTree(id);return nn.filter(n=>t.has(noteFolderOf(n))).length;};
   const kids=folderKids(cf);
-  const tiles=h("div",{class:"ftiles"},kids.map(k=>{const c=count(k.id);return h("button",{class:"ftile",style:"--c:"+(k.color||COLORS[0]),onclick:()=>openFolder(k.id)},h("i",{"aria-hidden":"true",text:"📁"}),h("b",{text:k.name}),h("span",{text:c?plural(c,"note"):"Empty"}));}),
+  const tiles=h("div",{class:"ftiles"},kids.map(k=>{const c=count(k.id);return h("button",{class:"ftile",style:"--c:"+(k.color||COLORS[0]),onclick:()=>openFolder(k.id)},h("b",{text:k.name}),h("span",{text:c?plural(c,"note"):"Empty"}));}),
     h("button",{class:"ftile fnew",onclick:()=>openFolderEdit(null,cf)},h("i",{"aria-hidden":"true",text:"＋"}),h("b",{text:"Folder"}),h("span",{text:cf?"Inside "+f.name:"New folder"})));
   const deep=h("label",{class:"deepsw"},h("input",{type:"checkbox",checked:UI.noteDeep,"aria-label":cf?"Include subfolders":"Show notes from all folders",onchange:e=>{UI.noteDeep=e.target.checked;lsSet("planner.noteDeep",UI.noteDeep?"1":"0");render();}}),h("span",{text:cf?"Include subfolders":"Show notes from all folders"}));
   const list=notesInView(nn,cf).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.updatedAt-a.updatedAt);
@@ -2420,8 +2418,8 @@ function renderNoteFolder(main,nn){
   if(!list.length)body.append(h("div",{class:"sec"},h("div",{class:"empty",text:nn.length?(cf?"No notes in "+f.name+" yet.":UI.noteDeep?"No notes yet.":"No notes outside folders. Open a folder above, or switch on “Show notes from all folders”."):"No notes yet. Ideas, lists, links, anything. Tip: share text from any app to Nova to save it here."})));
   else{
     const shown=UI.expanded.has("notes")?list:list.slice(0,40);
-    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n),cp=checkProgress(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"📌 ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
-      h("div",{class:"small muted",text:(nf!==cf&&nf?"📁 "+folderLabel(nf)+" · ":"")+(cp?"☑ "+cp.d+"/"+cp.t+" · ":"")+"Edited "+ago(n.updatedAt)}));})));
+    body.append(h("div",{class:"cards grid sec nlist"},shown.map(n=>{const nf=noteFolderOf(n),cp=checkProgress(n);return h("button",{class:"ncard",onclick:()=>openNote(n)},h("b",{text:(n.pinned?"Pinned: ":"")+(n.title||"Untitled")}),n.body?h("p",{text:snippet(n.body,160)}):null,
+      h("div",{class:"small muted",text:(nf!==cf&&nf?folderLabel(nf)+" · ":"")+(cp?cp.d+"/"+cp.t+" steps · ":"")+"Edited "+ago(n.updatedAt)}));})));
     if(shown.length<list.length)body.append(h("button",{class:"linkbtn",text:"Show all "+list.length,onclick:()=>{UI.expanded.add("notes");render();}}));
   }
   if(!UI.desktop){main.append(body);return;}
@@ -2452,14 +2450,14 @@ function openFolderEdit(f,parentId){
 function pickFolder(title,current,exclude,onPick){
   const list=h("div",{class:"fpick"});
   const opt=(id,label,depth)=>list.append(h("button",{type:"button",style:"--d:"+depth,"aria-pressed":String(id===current),disabled:exclude.has(id),onclick:()=>{close();onPick(id);}},label));
-  opt("",current===undefined?"Top level":"📁 No folder (top level)",0);
-  const walk=(pid,depth)=>folderKids(pid).forEach(k=>{opt(k.id,"📁 "+k.name,depth);walk(k.id,depth+1);});walk("",1);
+  opt("",current===undefined?"Top level":"No folder (top level)",0);
+  const walk=(pid,depth)=>folderKids(pid).forEach(k=>{opt(k.id,k.name,depth);walk(k.id,depth+1);});walk("",1);
   if(current!==undefined&&!D.folders.size)list.append(h("p",{class:"small muted",text:"No folders yet. Create one from the Notes page with + Folder."}));
   const close=openSheet([h("h3",{text:title}),list,h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}))]);
 }
 function openFolderMenu(f){
   const act=(label,fn)=>h("button",{class:"mi",onclick:()=>{close();fn();}},h("b",{text:label}));
-  const close=openSheet([h("h3",{text:"📁 "+f.name}),h("div",{class:"menu alist"},
+  const close=openSheet([h("h3",{text:f.name}),h("div",{class:"menu alist"},
     act("Rename or change colour",()=>openFolderEdit(f)),
     act("Move to another folder",()=>{const ex=folderTree(f.id);if(!f.parentId)ex.add("");pickFolder("Move “"+f.name+"” to…",undefined,ex,to=>{Store.put("folders",Object.assign(clone(f),{parentId:to}));openFolder(f.id);toast("Moved to "+(to?D.folders.get(to).name:"the top level"));});}),
     act("Delete folder",()=>deleteFolder(f)))]);
@@ -2509,9 +2507,9 @@ function editorSheet({titleVal,titlePh,note,bodyPh,head,extra,onChange,onClose,e
 }
 function openNote(n){
   let cur=n?clone(n):null,folderId=cur?noteFolderOf(cur):(UI.tab==="notes"?curFolder():"");
-  const pin=h("button",{class:"chip","aria-pressed":String(!!(cur&&cur.pinned)),text:"📌 Pin"});
+  const pin=h("button",{class:"chip","aria-pressed":String(!!(cur&&cur.pinned)),text:"Pin"});
   const fchip=h("button",{class:"chip fchip",title:"Move to a folder"});
-  const drawF=()=>{fchip.textContent="📁 "+(folderId?folderLabel(folderId):"No folder");};drawF();
+  const drawF=()=>{fchip.textContent=folderId?folderLabel(folderId):"No folder";};drawF();
   fchip.onclick=()=>pickFolder("Move note to…",folderId,new Set(),id=>{folderId=id;drawF();if(cur){cur.folderId=id;Store.put("notes",cur);}});
   const ed=editorSheet({titleVal:cur&&cur.title,titlePh:"Title",note:cur,bodyPh:"Start writing…",
     head:h("b",{style:"font-family:var(--display);font-size:18px;display:block",text:n?"Note":"New note"}),
@@ -3064,7 +3062,7 @@ function renderMoney(main){
   if(!days.length)main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"No spending logged in "+label+"."})));
   days.forEach(k=>{const list=byDay[k].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));const tot=list.filter(x=>x.type!=="income").reduce((s,x)=>s+Number(x.amount||0),0);
     main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{style:"font-size:17px",text:relLabel(k)}),h("span",{class:"n",text:tot?money(tot):""})),h("div",{class:"box"},list.map(x=>{const c=catById(x.catId),inc=x.type==="income";
-      return h("button",{class:"txn",onclick:()=>openExpense(x)},h("span",{class:"em",text:inc?"💰":c.emoji}),h("span",{class:"mid"},h("b",{text:x.note||(inc?"Income":c.name)}),h("span",{class:"small muted",text:inc?"Income":c.name})),h("span",{class:"amt"+(inc?" in":""),text:(inc?"+":"")+money(x.amount)}));}))));});
+      return h("button",{class:"txn",onclick:()=>openExpense(x)},h("span",{class:"mid"},h("b",{text:x.note||(inc?"Income":c.name)}),h("span",{class:"small muted",text:inc?"Income":c.name})),h("span",{class:"amt"+(inc?" in":""),text:(inc?"+":"")+money(x.amount)}));}))));});
 }
 function openExpense(x){
   const isNew=!x||!D.expenses.has(x.id);
@@ -3111,7 +3109,7 @@ function renderGoals(main){
   const active=gs.filter(g=>!g.done),done=gs.filter(g=>g.done);
   main.append(h("div",{class:"btnrow"},h("button",{class:"btn primary wide",text:"+ New goal",onclick:()=>openGoal(null)})));
   if(!gs.length){main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"Set a goal, then link tasks to it or track a number, like savings or kilometres run."})));return;}
-  const card=g=>{const p=goalProgress(g);return h("div",{class:"card"},h("button",{class:"hname",onclick:()=>openGoal(g)},h("b",{style:"font-size:17px",text:"🎯 "+g.title}),h("span",{text:(g.due?"By "+fromKey(g.due).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})+". ":"")+p.text})),
+  const card=g=>{const p=goalProgress(g);return h("div",{class:"card"},h("button",{class:"hname",onclick:()=>openGoal(g)},h("b",{style:"font-size:17px",text:g.title}),h("span",{text:(g.due?"By "+fromKey(g.due).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})+". ":"")+p.text})),
     h("div",{style:"margin-top:10px"},bar(p.pct)),g.kind==="number"&&!g.done?h("div",{class:"row",style:"margin-top:10px"},h("button",{class:"chip",text:"+1",onclick:()=>Store.put("goals",Object.assign(clone(g),{current:(Number(g.current)||0)+1}))}),h("button",{class:"chip",text:"Update",onclick:()=>openGoal(g)})):null);};
   main.append(h("div",{class:"cards grid sec"},active.map(card)));
   if(done.length)main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Achieved"})),h("div",{class:"cards grid"},done.map(card))));
@@ -3250,8 +3248,8 @@ function renderSettings(main){
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Updates"})),h("div",{class:"card upcard",style:"padding:2px 16px"},upd,inst)),
     h("p",{class:"small muted",text:"Nova checks for updates when you open it and every 30 minutes, and shows a bar at the top when one is ready."}));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
-    h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
-    h("p",{style:"margin:0 0 10px",text:"📤 Share to Nova: in any app, tap Share and pick Nova to save text or links as a note."}),
+    h("p",{style:"margin:0 0 10px",text:"Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
+    h("p",{style:"margin:0 0 10px",text:"Share to Nova: in any app, tap Share and pick Nova to save text or links as a note."}),
     h("p",{class:"small muted",style:"margin:0",text:"Home-screen widgets need a native Android app, so installed web apps can't show them. Quick actions are the closest option."}))));
 }
 function applyTheme(){const t=lsGet("planner.theme","auto");if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);}
@@ -3259,7 +3257,7 @@ function applyTheme(){const t=lsGet("planner.theme","auto");if(t==="auto")docume
 /* ================= guide ================= */
 function renderGuide(main){
   const keyRow=(keys,what)=>h("div",{class:"setrow"},h("div",null,h("b",{text:what})),h("span",{class:"keys"},keys.map((grp,i)=>[i?h("span",{class:"plus",text:"or"}):null,grp.map((k,j)=>[j?h("span",{class:"plus",text:"+"}):null,h("kbd",{text:k})])])));
-  const tipRow=(icon,title,text)=>h("div",{class:"setrow",style:"align-items:flex-start"},h("div",null,h("b",{text:icon+"  "+title}),h("span",{text:text})));
+  const tipRow=(title,text)=>h("div",{class:"setrow",style:"align-items:flex-start"},h("div",null,h("b",{text:title}),h("span",{text:text})));
   const card=(title,sub,rows)=>h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:title}),sub?h("span",{class:"n",text:sub}):null),h("div",{class:"card",style:"padding:2px 16px"},rows));
   main.append(h("p",{class:"muted",style:"margin:16px 0 0",text:"Everything Nova can do, and the fastest ways to do it."}));
   const MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent),CTRL=MAC?"⌘":"Ctrl";
@@ -3276,13 +3274,13 @@ function renderGuide(main){
     keyRow([["Esc"]],"Close the open window"),
     keyRow([["?"]],"Open this guide")]);
   const phone=card("On your phone","Touch and gestures",[
-    tipRow("⚡","Quick actions","Long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."),
-    tipRow("📤","Share to Nova","In any app, tap Share and choose Nova to save text or a link as a note."),
-    tipRow("👆","Swipe the calendar","In Month view, swipe left or right to change month."),
-    tipRow("↩️","Undo","Deleted or ticked something by mistake? Tap Undo on the message at the bottom.")]);
+    tipRow("Quick actions","Long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."),
+    tipRow("Share to Nova","In any app, tap Share and choose Nova to save text or a link as a note."),
+    tipRow("Swipe the calendar","In Month view, swipe left or right to change month."),
+    tipRow("Undo","Deleted or ticked something by mistake? Tap Undo on the message at the bottom.")]);
   if(UI.desktop)main.append(kb,phone);else main.append(phone,kb);
   main.append(card("Formatting notes","Notes and journal",[
-    tipRow("🖋️","Toolbar","Select text, then use the toolbar above your note: headings, bold, colours, lists, checkboxes, indent, alignment, links, dividers and tables."),
+    tipRow("Toolbar","Select text, then use the toolbar above your note: headings, bold, colours, lists, checkboxes, indent, alignment, links, dividers and tables."),
     keyRow([["#"],["##"],["###"]],"Type at the start of a line, then a space, for a heading"),
     keyRow([["-"],["1."],["[]"]],"Type at the start of a line, then a space, for a bullet, numbered list or checkbox"),
     keyRow([[">"]],"Then a space, for a quote"),
@@ -3295,26 +3293,26 @@ function renderGuide(main){
     keyRow([["Tab"],["Shift","Tab"]],"Indent or outdent a list item"),
     keyRow([[CTRL,"Z"],[CTRL,"Y"]],"Undo, redo")]));
   main.append(card("Planning","",[
-    tipRow("✨","Smart quick add","Type naturally: “Dentist tomorrow 3pm #personal !!” sets the date, time, list and priority. Also try “every monday”, “in 3 days”, “for 1h”, “remind 15m” and “25 dec”. The chips above the bar show what was understood."),
-    tipRow("📅","Google Calendar","Connect it in Settings to see your events in Plan and Home, and send tasks to your calendar for real phone alarms."),
-    tipRow("🗓️","Schedule","Tap an empty time slot to add a task there. Drag the ⠿ handle to move a task to a new time."),
-    tipRow("↻","Repeating tasks","Tick a repeating task and the next one appears on its next date automatically."),
-    tipRow("☑","Checklists","Break a task into steps in its Checklist. The task shows how many steps are done."),
-    tipRow("🔔","Reminders","Turn on notifications in More, then Settings. For alarms you can't miss, open the task and tap Add to Google Calendar."),
-    tipRow("🎯","Goals","Link tasks to a goal from the task's Goal box, and the goal's progress bar fills as you finish them.")]));
+    tipRow("Smart quick add","Type naturally: “Dentist tomorrow 3pm #personal !!” sets the date, time, list and priority. Also try “every monday”, “in 3 days”, “for 1h”, “remind 15m” and “25 dec”. The chips above the bar show what was understood."),
+    tipRow("Google Calendar","Connect it in Settings to see your events in Plan and Home, and send tasks to your calendar for real phone alarms."),
+    tipRow("Schedule","Tap an empty time slot to add a task there. Drag the ⠿ handle to move a task to a new time."),
+    tipRow("Repeating tasks","Tick a repeating task and the next one appears on its next date automatically."),
+    tipRow("Checklists","Break a task into steps in its Checklist. The task shows how many steps are done."),
+    tipRow("Reminders","Turn on notifications in More, then Settings. For alarms you can't miss, open the task and tap Add to Google Calendar."),
+    tipRow("Goals","Link tasks to a goal from the task's Goal box, and the goal's progress bar fills as you finish them.")]));
   main.append(card("Everything else","",[
-    tipRow("🔥","Habits","Tap the big circle to tick today. Tap the small circles to fill in days you forgot."),
-    tipRow("📝","Journal","One entry per day with a mood. Export your notes or journal as PDF or Word from the Export button."),
-    tipRow("🛒","Shopping","Type “2 kg rice” and the amount is split out for you. Share a list straight to WhatsApp."),
-    tipRow("🔗","Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
-    tipRow("📤","Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
-    tipRow("💰","Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
-    tipRow("🏠","Home screen","Tap the sliders button at the top of Home to choose widgets, make them small or large, and reorder them."),
-    tipRow("⏱️","Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
-    tipRow("🔁","Subscriptions","Add regular payments in Money. They're logged automatically when due, with an optional reminder."),
-    tipRow("👨‍👩‍👧","Shared lists","In More, Shared lists, create a list and tap Invite. Family join with the code and see changes instantly."),
-    tipRow("🔒","App lock","Set a PIN (and fingerprint) in Settings. Forgot it? Sign in with your account password to reset."),
-    tipRow("💾","Backup","Download a backup file every few weeks from More, then Backup. The weekly review reminds you.")]));
+    tipRow("Habits","Tap the big circle to tick today. Tap the small circles to fill in days you forgot."),
+    tipRow("Journal","One entry per day with a mood. Export your notes or journal as PDF or Word from the Export button."),
+    tipRow("Shopping","Type “2 kg rice” and the amount is split out for you. Share a list straight to WhatsApp."),
+    tipRow("Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
+    tipRow("Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
+    tipRow("Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
+    tipRow("Home screen","Tap the sliders button at the top of Home to choose widgets, make them small or large, and reorder them."),
+    tipRow("Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
+    tipRow("Subscriptions","Add regular payments in Money. They're logged automatically when due, with an optional reminder."),
+    tipRow("Shared lists","In More, Shared lists, create a list and tap Invite. Family join with the code and see changes instantly."),
+    tipRow("App lock","Set a PIN (and fingerprint) in Settings. Forgot it? Sign in with your account password to reset."),
+    tipRow("Backup","Download a backup file every few weeks from More, then Backup. The weekly review reminds you.")]));
 }
 
 /* ================= profile ================= */
@@ -3407,8 +3405,8 @@ async function deleteAccount(pw){
 }
 
 /* ================= more tab ================= */
-const PAGES={insights:["📈","Insights","Charts of your progress"],review:["📊","Weekly review","See how the week went"],goals:["🎯","Goals","Track big things"],countdowns:["🎉","Countdowns","Days until what matters"],templates:["📋","Templates","Reusable checklists"],
-  shopping:["🛒","Shopping","Your shopping lists"],shared:["👨‍👩‍👧","Shared lists","Lists with family, live"],guide:["📖","Guide","Shortcuts, gestures and tips"],backup:["💾","Backup","Download or restore"],settings:["⚙️","Settings","Lock, calendar, reminders"],profile:["👤","Profile","Your account, name and password"]};
+const PAGES={insights:["","Insights","Charts of your progress"],review:["","Weekly review","See how the week went"],goals:["","Goals","Track big things"],countdowns:["","Countdowns","Days until what matters"],templates:["","Templates","Reusable checklists"],
+  shopping:["","Shopping","Your shopping lists"],shared:["","Shared lists","Lists with family, live"],guide:["","Guide","Shortcuts, gestures and tips"],backup:["","Backup","Download or restore"],settings:["","Settings","Lock, calendar, reminders"],profile:["","Profile","Your account, name and password"]};
 const MENU=[["Tools",["focus","insights","review","goals","countdowns","templates"]],["Lists",["shopping","shared"]],["App",["profile","guide","backup","settings"]]];
 function renderMore(main){
   if(UI.page&&PAGES[UI.page]){
@@ -3419,11 +3417,11 @@ function renderMore(main){
   }
   setHeader("More","Everything else in one place");
   const open=k=>{if(k==="focus"){openFocus();return;}UI.page=k;render();window.scrollTo(0,0);};
-  const item=(k,e,t,s,fn)=>h("button",{class:"mi",onclick:fn||(()=>open(k))},h("span",{class:"e",text:e}),h("b",{text:t}),h("span",{text:s}));
+  const item=(k,e,t,s,fn)=>h("button",{class:"mi",onclick:fn||(()=>open(k))},h("b",{text:t}),h("span",{text:s}));
   {const hidden=NAV_CHOICES.filter(c=>!navLayout(UI.desktop?"desk":"phone").includes(c[0]));
-    const SEC={plan:["🗓️","Your tasks and calendar"],habits:["🔥","Daily habits and streaks"],notes:["📝","Notes and journal"],money:["💰","Spending and budget"],links:["🔗","Your saved websites"]};
+    const SEC={plan:["","Your tasks and calendar"],habits:["","Daily habits and streaks"],notes:["","Notes and journal"],money:["","Spending and budget"],links:["","Your saved websites"]};
     if(hidden.length)main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:"Sections"}),h("div",{class:"menu"},hidden.map(([id,nm])=>item(id,SEC[id][0],nm,SEC[id][1],()=>goTab(id)))));}
-  MENU.forEach(([g,keys])=>{main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:g}),h("div",{class:"menu"},keys.map(k=>k==="focus"?item("focus","⏱️","Focus timer",focusState()?"Session running":"Pomodoro-style focus"):item(k,...PAGES[k]))));});
+  MENU.forEach(([g,keys])=>{main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:g}),h("div",{class:"menu"},keys.map(k=>k==="focus"?item("focus","","Focus timer",focusState()?"Session running":"Pomodoro-style focus"):item(k,...PAGES[k]))));});
 }
 
 /* ================= search ================= */
@@ -3437,13 +3435,13 @@ function openSearch(){
     const has=(...f)=>f.some(x=>x&&String(x).toLowerCase().includes(s));
     const groups=[
       ["Tasks",vals("tasks").filter(t=>has(t.title,t.notes,...(t.subtasks||[]).map(x=>x.text))).sort((a,b)=>(a.done?1:0)-(b.done?1:0)),t=>[t.title+(t.done?" ✓":""),t.date?relLabel(t.date):"No date",go(()=>openTask(t))]],
-      ["Notes",vals("notes").filter(n=>n.type!=="journal"&&has(n.title,n.body)),n=>[n.title||"Untitled",(noteFolderOf(n)?"📁 "+folderLabel(noteFolderOf(n))+" · ":"")+snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="notes";render();openNote(n);})]],
+      ["Notes",vals("notes").filter(n=>n.type!=="journal"&&has(n.title,n.body)),n=>[n.title||"Untitled",(noteFolderOf(n)?folderLabel(noteFolderOf(n))+" · ":"")+snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="notes";render();openNote(n);})]],
       ["Journal",vals("notes").filter(n=>n.type==="journal"&&has(n.body)),n=>[longDate(n.date),snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="journal";render();openJournal(n.date);})]],
-      ["Habits",vals("habits").filter(x=>has(x.name)),x=>[x.emoji+" "+x.name,"Habit",go(()=>{UI.tab="habits";render();openHabit(x);})]],
-      ["Goals",vals("goals").filter(g=>has(g.title,g.why)),g=>["🎯 "+g.title,goalProgress(g).text,go(()=>openGoal(g))]],
+      ["Habits",vals("habits").filter(x=>has(x.name)),x=>[x.name,"Habit",go(()=>{UI.tab="habits";render();openHabit(x);})]],
+      ["Goals",vals("goals").filter(g=>has(g.title,g.why)),g=>[g.title,goalProgress(g).text,go(()=>openGoal(g))]],
       ["Shopping",vals("shop").filter(i=>has(i.name)),i=>[i.name+(i.done?" ✓":""),(SET.shopLists.find(l=>l.id===i.listId)||{name:"List"}).name,go(()=>{UI.tab="more";UI.page="shopping";UI.shopList=i.listId;render();})]],
-      ["Countdowns",vals("countdowns").filter(c=>has(c.title)),c=>[(c.emoji||"🎉")+" "+c.title,cdLabel(daysUntil(cdNext(c))),go(()=>openCountdown(c))]],
-      ["Templates",vals("templates").filter(t=>has(t.name,...(t.items||[]))),t=>[(t.emoji||"📋")+" "+t.name,plural(t.items.length,"item"),go(()=>openTemplate(t))]],
+      ["Countdowns",vals("countdowns").filter(c=>has(c.title)),c=>[c.title,cdLabel(daysUntil(cdNext(c))),go(()=>openCountdown(c))]],
+      ["Templates",vals("templates").filter(t=>has(t.name,...(t.items||[]))),t=>[t.name,plural(t.items.length,"item"),go(()=>openTemplate(t))]],
       ["Links",vals("links").filter(l=>has(l.name,l.url,l.note)),l=>[l.name,domainOf(l.url),go(()=>{window.open(l.url,"_blank","noopener");visit(l);})]],
       ["Money",vals("expenses").filter(x=>has(x.note,catById(x.catId).name)),x=>[(x.note||catById(x.catId).name)+", "+money(x.amount),relLabel(x.date),go(()=>openExpense(x))]]];
     let any=false;
@@ -3505,12 +3503,12 @@ function renderLinks(main){
     h("button",{class:"chip","aria-pressed":String(!!UI.linkEdit),text:UI.linkEdit?"Done":"Edit",onclick:()=>{UI.linkEdit=!UI.linkEdit;render();}}),
     h("button",{class:"btn primary",style:"padding:10px 16px",text:"+ Add",onclick:()=>openLink(null)})));
   if(!links.length){
-    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("div",{style:"font-size:34px",text:"🔗"}),h("p",{style:"margin:6px 0 14px",text:"Save websites you use often and open them in one tap. Paste a link in the bar below, or tap Add."}),h("button",{class:"btn primary",text:"Add your first link",onclick:()=>openLink(null)}))));
+    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:6px 0 14px",text:"Save websites you use often and open them in one tap. Paste a link in the bar below, or tap Add."}),h("button",{class:"btn primary",text:"Add your first link",onclick:()=>openLink(null)}))));
     return;
   }
   const counts={};links.forEach(l=>counts[l.catId]=(counts[l.catId]||0)+1);
   const orphans=links.filter(l=>!linkCatById(l.catId));
-  const chipList=[["","All ("+links.length+")"]].concat(cats.filter(c=>counts[c.id]).map(c=>[c.id,c.emoji+" "+c.name+" ("+counts[c.id]+")"]));
+  const chipList=[["","All ("+links.length+")"]].concat(cats.filter(c=>counts[c.id]).map(c=>[c.id,c.name+" ("+counts[c.id]+")"]));
   if(!chipList.some(([v])=>v===UI.linkCat))UI.linkCat="";
   main.append(h("div",{class:"lchips"},chipList.map(([v,l])=>h("button",{class:"chip","aria-pressed":String(UI.linkCat===v),text:l,onclick:()=>{UI.linkCat=v;render();window.scrollTo({top:0,behavior:"smooth"});}}))));
   main.append(h("div",{class:"lsort"},h("span",{class:"small muted",text:"Sort"}),seg([["az","A–Z"],["used","Most used"],["new","Newest"]],lsGet("planner.linkSort","az"),v=>{lsSet("planner.linkSort",v);render();}),
@@ -3518,10 +3516,10 @@ function renderLinks(main){
   const box=h("div",{class:"lsecs"});
   if(!UI.linkCat){
     const top=links.filter(l=>(l.visits||0)>=2).sort((a,b)=>(b.visits||0)-(a.visits||0)||(b.lastVisited||0)-(a.lastVisited||0)).slice(0,8);
-    if(top.length>=3)box.append(h("section",{class:"lsec quick","data-sec":"1"},h("div",{class:"lhead"},h("span",{class:"lemo",style:"--lc:var(--sun)",text:"⚡"}),h("b",{text:"Most used"})),h("div",{class:"lgrid"},top.map(linkTile))));
+    if(top.length>=3)box.append(h("section",{class:"lsec quick","data-sec":"1"},h("div",{class:"lhead"},h("b",{text:"Most used"})),h("div",{class:"lgrid"},top.map(linkTile))));
   }
   const groups=cats.filter(c=>!UI.linkCat||c.id===UI.linkCat).map(c=>[c,links.filter(l=>l.catId===c.id)]);
-  if(!UI.linkCat&&orphans.length)groups.push([{id:"_none",name:"No category",emoji:"📁",color:"#6B7C78"},orphans]);
+  if(!UI.linkCat&&orphans.length)groups.push([{id:"_none",name:"No category",emoji:"",color:"#6B7C78"},orphans]);
   groups.forEach(([c,items])=>{
     if(!items.length)return;
     items.sort(sorter);
@@ -3529,7 +3527,7 @@ function renderLinks(main){
     const toggle=()=>{const s=collapsed();s.has(c.id)?s.delete(c.id):s.add(c.id);lsSet("planner.linkCollapsed",JSON.stringify([...s]));render();};
     box.append(h("section",{class:"lsec"+(shut?" shut":""),"data-sec":"1"},
       h("div",{class:"lhead"},
-        h("button",{class:"lhbtn","aria-expanded":String(!shut),onclick:toggle},h("span",{class:"lemo",style:"--lc:"+(c.color||"#6B7C78"),text:c.emoji||"📁"}),h("b",{text:c.name}),h("span",{class:"n",text:String(items.length)}),h("span",{class:"chev",text:"›"})),
+        h("button",{class:"lhbtn","aria-expanded":String(!shut),onclick:toggle},h("b",{text:c.name}),h("span",{class:"n",text:String(items.length)}),h("span",{class:"chev",text:"›"})),
         h("button",{class:"chip openall",title:"Open all "+items.length+" in new tabs",onclick:()=>openAll(items,c.name)},"Open all ",h("span",{text:"↗"}))),
       h("div",{class:"lgrid"},items.map(linkTile))));
   });
@@ -3712,13 +3710,13 @@ function parseQuick(input){
 }
 function parseChips(p){
   const c=[];
-  if(p.date)c.push("📅 "+relLabel(p.date));
-  if(p.time)c.push("🕒 "+fmtTime(p.time)+(p.duration?" for "+durLabel(p.duration):""));
-  else if(p.duration)c.push("⏳ "+durLabel(p.duration));
+  if(p.date)c.push(relLabel(p.date));
+  if(p.time)c.push(fmtTime(p.time)+(p.duration?" for "+durLabel(p.duration):""));
+  else if(p.duration)c.push(durLabel(p.duration));
   if(p.listId){const l=listById(p.listId);if(l)c.push("# "+l.name);}
   if(p.priority)c.push(p.priority===2?"!! Urgent":"! Important");
   if(p.repeat)c.push("↻ "+REPEAT_LABEL[p.repeat]);
-  if(p.remind!=null)c.push("🔔 "+REMINDS.find(r=>r[0]===p.remind)[1]);
+  if(p.remind!=null)c.push("Reminder: "+REMINDS.find(r=>r[0]===p.remind)[1]);
   return c;
 }
 
@@ -4140,9 +4138,8 @@ function countdownsSorted(){return vals("countdowns").map(c=>Object.assign({},c,
 function cdCard(c,compact){
   const years=c.yearly&&c.showAge?fromKey(c.next).getFullYear()-fromKey(c.date).getFullYear():null;
   return h("button",{class:"cdcard"+(compact?" compact":""),style:"--c:"+(c.color||COLORS[0]),onclick:()=>openCountdown(c)},
-    h("span",{class:"cde",text:c.emoji||"🎉"}),
     h("span",{class:"cdm"},h("b",{text:c.title}),h("span",{text:fromKey(c.next).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:fromKey(c.next).getFullYear()===new Date().getFullYear()?undefined:"numeric"})+(years?", turns "+years:"")+(c.yearly?" ↻":"")})),
-    h("span",{class:"cdn"},h("b",{text:c.days===0?"🎉":String(Math.abs(c.days))}),h("span",{text:c.days===0?"Today":c.days<0?"days ago":c.days===1?"day":"days"})));
+    h("span",{class:"cdn"},h("b",{text:c.days===0?"0":String(Math.abs(c.days))}),h("span",{text:c.days===0?"Today":c.days<0?"days ago":c.days===1?"day":"days"})));
 }
 function renderCountdowns(main){
   const all=countdownsSorted(),up=all.filter(c=>c.days>=0),past=all.filter(c=>c.days<0);
@@ -4171,14 +4168,14 @@ function openCountdown(c){
 }
 
 /* ================= templates ================= */
-const TEMPLATE_IDEAS=[["Packing list","🧳","task",["Passport","Phone charger","Toiletries","Clothes","Medication","Headphones"]],["Morning routine","🌅","task",["Glass of water","Stretch 5 minutes","Plan the day","Check calendar"]],["Weekly groceries","🛒","shopping",["Milk","Bread","Eggs","Fruit","Vegetables","Coffee"]]];
+const TEMPLATE_IDEAS=[["Packing list","","task",["Passport","Phone charger","Toiletries","Clothes","Medication","Headphones"]],["Morning routine","","task",["Glass of water","Stretch 5 minutes","Plan the day","Check calendar"]],["Weekly groceries","","shopping",["Milk","Bread","Eggs","Fruit","Vegetables","Coffee"]]];
 function renderTemplates(main){
   const ts=vals("templates").sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   main.append(h("div",{class:"btnrow"},h("button",{class:"btn primary wide",text:"+ New template",onclick:()=>openTemplate(null)})));
   if(!ts.length){main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:0 0 12px",text:"Save checklists you reuse, then add them in one tap. Start with one of these:"}),
-    h("div",{class:"row",style:"justify-content:center"},TEMPLATE_IDEAS.map(([n,e,k,items])=>h("button",{class:"chip",text:e+" "+n,onclick:()=>{Store.put("templates",{id:uid(),name:n,emoji:e,kind:k,items,createdAt:Date.now()});toast("Template added");}}))))));return;}
+    h("div",{class:"row",style:"justify-content:center"},TEMPLATE_IDEAS.map(([n,e,k,items])=>h("button",{class:"chip",text:n,onclick:()=>{Store.put("templates",{id:uid(),name:n,emoji:"",kind:k,items,createdAt:Date.now()});toast("Template added");}}))))));return;}
   main.append(h("div",{class:"cards grid sec"},ts.map(t=>h("div",{class:"card tplcard"},
-    h("button",{class:"hname",onclick:()=>openTemplate(t)},h("b",{text:(t.emoji||"📋")+" "+t.name}),h("span",{text:(t.kind==="shopping"?"Shopping list, ":"Task checklist, ")+plural(t.items.length,"item")})),
+    h("button",{class:"hname",onclick:()=>openTemplate(t)},h("b",{text:t.name}),h("span",{text:(t.kind==="shopping"?"Shopping list, ":"Task checklist, ")+plural(t.items.length,"item")})),
     h("p",{class:"small muted",style:"margin:8px 0 12px",text:t.items.slice(0,5).join(", ")+(t.items.length>5?"…":"")}),
     h("button",{class:"btn primary",text:t.kind==="shopping"?"Add to shopping list":"Use as a task",onclick:()=>useTemplate(t)})))));
 }
@@ -4392,13 +4389,13 @@ function renderShared(main){
   if(!Shared.ready)main.append(h("div",{class:"loading",text:"Loading shared lists…"}));
   else if(!lists.length)main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"Create a list, then invite your family with a code. Everyone sees changes instantly: tick off milk at the shop and it's gone from their list too."})));
   else main.append(h("div",{class:"cards grid sec"},lists.map(l=>{const its=itemsOf(l.id),left=its.filter(i=>!i.done).length;
-    return h("button",{class:"ncard",onclick:()=>{UI.sharedList=l.id;render();window.scrollTo(0,0);}},h("b",{text:(l.kind==="todo"?"✅ ":"🛒 ")+l.name}),h("p",{text:left?plural(left,"item")+" left":"All done"}),avatars(l));})));
+    return h("button",{class:"ncard",onclick:()=>{UI.sharedList=l.id;render();window.scrollTo(0,0);}},h("b",{text:l.name}),h("p",{text:left?plural(left,"item")+" left":"All done"}),avatars(l));})));
 }
 function avatars(l){const ids=l.members||[];return h("div",{class:"avs"},ids.slice(0,6).map(id=>{const m=(l.memberInfo||{})[id]||{};const n=m.name||"?";return h("span",{class:"av",style:"--c:"+colorFor(id),title:n+(id===(Store.user||{}).uid?" (you)":""),text:n.charAt(0).toUpperCase()});}),ids.length>6?h("span",{class:"small muted",text:"+"+(ids.length-6)}):null,h("span",{class:"small muted",text:plural(ids.length,"member")}));}
 function renderSharedList(main,L){
   const its=itemsOf(L.id).sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.createdAt||0)-(b.createdAt||0));const uid=Store.user.uid;
   main.append(h("div",{class:"row",style:"margin-top:12px;justify-content:space-between"},h("button",{class:"back",text:"‹ Shared lists",onclick:()=>{UI.sharedList=null;render();}}),h("button",{class:"btn primary",style:"padding:9px 16px",text:"Invite",onclick:()=>invite(L)})));
-  main.append(h("div",{class:"card sec"},h("b",{style:"font-family:var(--display);font-size:20px;display:block",text:(L.kind==="todo"?"✅ ":"🛒 ")+L.name}),avatars(L)));
+  main.append(h("div",{class:"card sec"},h("b",{style:"font-family:var(--display);font-size:20px;display:block",text:L.name}),avatars(L)));
   if(!its.length)main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"Empty so far. Type below to add "+(L.kind==="todo"?"a to-do":"an item, e.g. 2 kg rice")+"."})));
   else main.append(h("div",{class:"sec"},h("ul",{class:"tasks"},its.map(it=>{
     const cb=h("button",{class:"check","aria-label":(it.done?"Untick ":"Tick ")+it.name,onclick:()=>fbDb.collection("shared").doc(L.id).collection("items").doc(it.id).update({done:!it.done,doneBy:it.done?"":meInfo().name}).catch(sharedFail)});cb.innerHTML=CHECK;
@@ -4421,7 +4418,7 @@ function addSharedItem(v){
 function openSharedNew(){
   let kind="shopping";const name=h("input",{class:"inp title",placeholder:"e.g. Family groceries, House jobs","aria-label":"List name"});
   const go=h("button",{class:"btn primary",text:"Create list"});
-  const close=openSheet([h("h3",{text:"New shared list"}),name,h("div",{class:"field"},h("span",{class:"lbl",text:"Type"}),seg([["shopping","🛒 Shopping"],["todo","✅ To-do"]],kind,v=>{kind=v;})),h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
+  const close=openSheet([h("h3",{text:"New shared list"}),name,h("div",{class:"field"},h("span",{class:"lbl",text:"Type"}),seg([["shopping","Shopping"],["todo","To-do"]],kind,v=>{kind=v;})),h("div",{class:"actions"},h("button",{class:"btn ghost",text:"Cancel",onclick:()=>close()}),go)]);
   go.onclick=async()=>{const n=name.value.trim();if(!n){name.focus();return;}go.disabled=true;const uid=Store.user.uid;const ref=fbDb.collection("shared").doc();
     try{await ref.set({name:n,kind,owner:uid,members:[uid],memberInfo:{[uid]:meInfo()},createdAt:Date.now()});close();UI.sharedList=ref.id;Shared.lists.set(ref.id,{id:ref.id,name:n,kind,owner:uid,members:[uid],memberInfo:{[uid]:meInfo()}});render();setTimeout(()=>invite(Shared.lists.get(ref.id)),250);}
     catch(e){sharedFail(e);go.disabled=false;}};
@@ -4551,9 +4548,9 @@ function renderGcalSettings(box,row){
 
 /* ================= home dashboard ================= */
 const WIDGETS=[
-  ["today","","Today's tasks"],["next","🕒","Next up"],["habits","🔥","Habits"],["focus","⏱️","Focus timer"],
-  ["money","💰","Money this month"],["bills","🔁","Upcoming bills"],["countdowns","🎉","Countdowns"],["journal","✍️","Journal"],
-  ["goals","🎯","Goals"],["links","🔗","Quick links"],["shopping","🛒","Shopping list"],["week","📊","This week"],["note","📌","Pinned note"]];
+  ["today","","Today's tasks"],["next","","Next up"],["habits","","Habits"],["focus","","Focus timer"],
+  ["money","","Money this month"],["bills","","Upcoming bills"],["countdowns","","Countdowns"],["journal","","Journal"],
+  ["goals","","Goals"],["links","","Quick links"],["shopping","","Shopping list"],["week","","This week"],["note","","Pinned note"]];
 const WMAP=Object.fromEntries(WIDGETS.map(w=>[w[0],w]));
 const DEFAULT_DASH=[["today","full"],["next","full"],["habits","full"],["focus","compact"],["money","compact"],["countdowns","full"],["journal","compact"],["bills","compact"],["links","full"],["goals","off"],["shopping","off"],["week","off"],["note","off"]];
 function dashConfig(){
@@ -4584,7 +4581,7 @@ const W={
   habits(size){const now=new Date(),tk=todayKey(),hs=vals("habits").filter(x=>!x.archived&&habitDue(x,now)),d=hs.filter(x=>x.log&&x.log[tk]).length;
     if(size==="compact")return stat(d+"/"+hs.length,"habits done today",()=>goTab("habits"));
     if(!hs.length)return h("p",{class:"muted small",text:"No habits due today."});
-    return h("div",{class:"hmini"},hs.map(hb=>{const on=!!(hb.log&&hb.log[tk]);const b=h("button",{class:"hbig"+(on?" on":""),style:"--c:"+hb.color,"aria-label":(on?"Undo ":"Done: ")+hb.name,onclick:()=>toggleHabit(hb,tk)});b.innerHTML=CHECK;return h("div",{class:"hm"},b,h("span",{text:hb.emoji+" "+hb.name}));}));},
+    return h("div",{class:"hmini"},hs.map(hb=>{const on=!!(hb.log&&hb.log[tk]);const b=h("button",{class:"hbig"+(on?" on":""),style:"--c:"+hb.color,"aria-label":(on?"Undo ":"Done: ")+hb.name,onclick:()=>toggleHabit(hb,tk)});b.innerHTML=CHECK;return h("div",{class:"hm"},b,h("span",{text:hb.name}));}));},
   focus(size){const st=focusState(),today=focusToday();
     if(size==="compact")return stat(st&&!st.done?mmss(focusRemaining(st)):hmins(today),st&&!st.done?(st.paused?"paused":"left in session"):"focused today",()=>openFocus());
     return h("div",{class:"row",style:"justify-content:space-between"},h("div",null,h("b",{style:"font-family:var(--display);font-size:26px",text:hmins(today)}),h("div",{class:"small muted",text:"focused today"})),h("button",{class:"btn primary",text:st?"Open timer":"Start focusing",onclick:()=>openFocus()}));},
@@ -4594,17 +4591,17 @@ const W={
       h("div",{class:"row",style:"margin-top:12px"},h("button",{class:"btn primary",text:"+ Add expense",onclick:()=>openExpense(null)})));},
   bills(size){const soon=key(addDays(new Date(),30)),up=vals("subs").filter(s=>!s.paused&&s.nextDate&&s.nextDate<=soon).sort((a,b)=>a.nextDate<b.nextDate?-1:1);
     if(size==="compact")return up.length?stat(relLabel(up[0].nextDate),up[0].name+", "+money(up[0].amount),()=>goTab("money")):stat("–","No bills due soon",()=>goTab("money"));
-    return up.length?h("div",{class:"box"},up.slice(0,4).map(s=>h("button",{class:"txn",onclick:()=>openSub(s)},h("span",{class:"em",text:s.emoji||"🔁"}),h("span",{class:"mid"},h("b",{text:s.name}),h("span",{class:"small muted",text:relLabel(s.nextDate)})),h("span",{class:"amt",text:money(s.amount)})))):h("p",{class:"muted small",text:"No bills in the next 30 days."});},
+    return up.length?h("div",{class:"box"},up.slice(0,4).map(s=>h("button",{class:"txn",onclick:()=>openSub(s)},h("span",{class:"mid"},h("b",{text:s.name}),h("span",{class:"small muted",text:relLabel(s.nextDate)})),h("span",{class:"amt",text:money(s.amount)})))):h("p",{class:"muted small",text:"No bills in the next 30 days."});},
   countdowns(size){const c=countdownsSorted().filter(x=>x.days>=0);
-    if(size==="compact")return c.length?stat(c[0].days===0?"Today":c[0].days+"d",c[0].emoji+" "+c[0].title,()=>openCountdown(c[0])):stat("–","No countdowns",()=>{UI.tab="more";UI.page="countdowns";render();});
+    if(size==="compact")return c.length?stat(c[0].days===0?"Today":c[0].days+"d",c[0].title,()=>openCountdown(c[0])):stat("–","No countdowns",()=>{UI.tab="more";UI.page="countdowns";render();});
     return c.length?h("div",{class:"cards"},c.slice(0,3).map(x=>cdCard(x,true))):h("p",{class:"muted small",text:"Nothing to count down to yet."});},
   journal(size){const j=D.notes.get("j-"+todayKey()),m=j&&moodOf(j.mood);
-    if(size==="compact")return stat(m?m[1]:"✍️",j?"Today's entry written":"Write today's entry",()=>openJournal(todayKey()));
-    return h("div",null,h("div",{class:"moods"},MOODS.map(([v,e,l])=>h("button",{"aria-pressed":String(!!j&&String(j.mood)===v),onclick:()=>{const cur=D.notes.get("j-"+todayKey())||newNote({id:"j-"+todayKey(),type:"journal",date:todayKey()});Store.put("notes",Object.assign(clone(cur),{mood:v,updatedAt:Date.now()}));}},e,h("small",{text:l})))),
+    if(size==="compact")return stat(m?m[1]:"Journal",j?"Today's entry written":"Write today's entry",()=>openJournal(todayKey()));
+    return h("div",null,h("div",{class:"moods"},MOODS.map(([v,e,l])=>h("button",{"aria-pressed":String(!!j&&String(j.mood)===v),onclick:()=>{const cur=D.notes.get("j-"+todayKey())||newNote({id:"j-"+todayKey(),type:"journal",date:todayKey()});Store.put("notes",Object.assign(clone(cur),{mood:v,updatedAt:Date.now()}));}},h("small",{text:l})))),
       h("button",{class:"linkbtn",text:j&&j.body?"Keep writing today's entry":"Write today's entry",onclick:()=>openJournal(todayKey())}));},
   goals(size){const g=vals("goals").filter(x=>!x.done);
     if(size==="compact"){const avg=g.length?g.reduce((a,x)=>a+goalProgress(x).pct,0)/g.length:0;return stat(g.length?Math.round(avg*100)+"%":"–",g.length?"average across "+plural(g.length,"goal"):"No goals yet",()=>{UI.tab="more";UI.page="goals";render();});}
-    return g.length?h("div",{class:"glist"},g.slice(0,4).map(x=>{const p=goalProgress(x);return h("button",{class:"grow",onclick:()=>openGoal(x)},h("span",{class:"row",style:"justify-content:space-between"},h("b",{text:"🎯 "+x.title}),h("span",{class:"small muted",text:Math.round(p.pct*100)+"%"})),bar(p.pct));})):h("p",{class:"muted small",text:"No active goals."});},
+    return g.length?h("div",{class:"glist"},g.slice(0,4).map(x=>{const p=goalProgress(x);return h("button",{class:"grow",onclick:()=>openGoal(x)},h("span",{class:"row",style:"justify-content:space-between"},h("b",{text:x.title}),h("span",{class:"small muted",text:Math.round(p.pct*100)+"%"})),bar(p.pct));})):h("p",{class:"muted small",text:"No active goals."});},
   links(size){const ls=vals("links").sort((a,b)=>(b.visits||0)-(a.visits||0)||(a.name||"").localeCompare(b.name||"")).slice(0,size==="compact"?4:8);
     return ls.length?h("div",{class:"lgrid wlinks"},ls.map(linkTile)):h("p",{class:"muted small",text:"Save websites in Links and your favourites show here."});},
   shopping(size){const L=SET.shopLists.find(l=>l.id===UI.shopList)||SET.shopLists[0],its=vals("shop").filter(i=>i.listId===L.id&&!i.done);
@@ -4852,7 +4849,7 @@ document.querySelectorAll(".installbtn").forEach(b=>b.addEventListener("click",i
 updateInstallUI();
 
 /* app updates. APP_VERSION is written in by build.py from sw.js; the newest version is read from sw.js on the server. */
-const APP_VERSION=Number("23")||0;
+const APP_VERSION=Number("24")||0;
 const Updates={reg:null,latest:0,checked:0,state:""}; // state: "" | "checking" | "offline" | "error"
 const updateReady=()=>Updates.latest>APP_VERSION;
 async function latestVersion(){const r=await fetch("./sw.js?check="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);

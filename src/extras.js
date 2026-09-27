@@ -62,9 +62,8 @@ function countdownsSorted(){return vals("countdowns").map(c=>Object.assign({},c,
 function cdCard(c,compact){
   const years=c.yearly&&c.showAge?fromKey(c.next).getFullYear()-fromKey(c.date).getFullYear():null;
   return h("button",{class:"cdcard"+(compact?" compact":""),style:"--c:"+(c.color||COLORS[0]),onclick:()=>openCountdown(c)},
-    h("span",{class:"cde",text:c.emoji||"🎉"}),
     h("span",{class:"cdm"},h("b",{text:c.title}),h("span",{text:fromKey(c.next).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:fromKey(c.next).getFullYear()===new Date().getFullYear()?undefined:"numeric"})+(years?", turns "+years:"")+(c.yearly?" ↻":"")})),
-    h("span",{class:"cdn"},h("b",{text:c.days===0?"🎉":String(Math.abs(c.days))}),h("span",{text:c.days===0?"Today":c.days<0?"days ago":c.days===1?"day":"days"})));
+    h("span",{class:"cdn"},h("b",{text:c.days===0?"0":String(Math.abs(c.days))}),h("span",{text:c.days===0?"Today":c.days<0?"days ago":c.days===1?"day":"days"})));
 }
 function renderCountdowns(main){
   const all=countdownsSorted(),up=all.filter(c=>c.days>=0),past=all.filter(c=>c.days<0);
@@ -93,14 +92,14 @@ function openCountdown(c){
 }
 
 /* ================= templates ================= */
-const TEMPLATE_IDEAS=[["Packing list","🧳","task",["Passport","Phone charger","Toiletries","Clothes","Medication","Headphones"]],["Morning routine","🌅","task",["Glass of water","Stretch 5 minutes","Plan the day","Check calendar"]],["Weekly groceries","🛒","shopping",["Milk","Bread","Eggs","Fruit","Vegetables","Coffee"]]];
+const TEMPLATE_IDEAS=[["Packing list","","task",["Passport","Phone charger","Toiletries","Clothes","Medication","Headphones"]],["Morning routine","","task",["Glass of water","Stretch 5 minutes","Plan the day","Check calendar"]],["Weekly groceries","","shopping",["Milk","Bread","Eggs","Fruit","Vegetables","Coffee"]]];
 function renderTemplates(main){
   const ts=vals("templates").sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   main.append(h("div",{class:"btnrow"},h("button",{class:"btn primary wide",text:"+ New template",onclick:()=>openTemplate(null)})));
   if(!ts.length){main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:0 0 12px",text:"Save checklists you reuse, then add them in one tap. Start with one of these:"}),
-    h("div",{class:"row",style:"justify-content:center"},TEMPLATE_IDEAS.map(([n,e,k,items])=>h("button",{class:"chip",text:e+" "+n,onclick:()=>{Store.put("templates",{id:uid(),name:n,emoji:e,kind:k,items,createdAt:Date.now()});toast("Template added");}}))))));return;}
+    h("div",{class:"row",style:"justify-content:center"},TEMPLATE_IDEAS.map(([n,e,k,items])=>h("button",{class:"chip",text:n,onclick:()=>{Store.put("templates",{id:uid(),name:n,emoji:"",kind:k,items,createdAt:Date.now()});toast("Template added");}}))))));return;}
   main.append(h("div",{class:"cards grid sec"},ts.map(t=>h("div",{class:"card tplcard"},
-    h("button",{class:"hname",onclick:()=>openTemplate(t)},h("b",{text:(t.emoji||"📋")+" "+t.name}),h("span",{text:(t.kind==="shopping"?"Shopping list, ":"Task checklist, ")+plural(t.items.length,"item")})),
+    h("button",{class:"hname",onclick:()=>openTemplate(t)},h("b",{text:t.name}),h("span",{text:(t.kind==="shopping"?"Shopping list, ":"Task checklist, ")+plural(t.items.length,"item")})),
     h("p",{class:"small muted",style:"margin:8px 0 12px",text:t.items.slice(0,5).join(", ")+(t.items.length>5?"…":"")}),
     h("button",{class:"btn primary",text:t.kind==="shopping"?"Add to shopping list":"Use as a task",onclick:()=>useTemplate(t)})))));
 }

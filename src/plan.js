@@ -47,10 +47,10 @@ function taskRow(t,opts){
   if(t.time)meta.push(h("span",{text:fmtTime(t.time)}));
   if(l&&!opts.hideList)meta.push(h("span",{text:l.name}));
   if(t.repeat)meta.push(h("span",{text:"↻ "+REPEAT_LABEL[t.repeat]}));
-  if(t.subtasks&&t.subtasks.length)meta.push(h("span",{text:"☑ "+t.subtasks.filter(s=>s.done).length+"/"+t.subtasks.length}));
-  if(t.remind!==""&&t.remind!=null&&!t.done)meta.push(h("span",{text:"🔔","aria-label":"Reminder set"}));
+  if(t.subtasks&&t.subtasks.length)meta.push(h("span",{text:t.subtasks.filter(s=>s.done).length+"/"+t.subtasks.length+" steps"}));
+  if(t.remind!==""&&t.remind!=null&&!t.done)meta.push(h("span",{text:"Reminder","aria-label":"Reminder set"}));
   {const fm=taskFocus(t.id);if(fm)meta.push(h("span",{text:"⏱ "+hmins(fm)}));}
-  if(t.goalId&&D.goals.has(t.goalId))meta.push(h("span",{text:"🎯 "+D.goals.get(t.goalId).title}));
+  if(t.goalId&&D.goals.has(t.goalId))meta.push(h("span",{text:D.goals.get(t.goalId).title}));
   if(opts.compact)return h("li",{class:"task compact"+(t.done?" done":"")},cb, // one line: title, then time
     h("button",{class:"tbody",onclick:()=>openTask(t)},h("span",{class:"ttitle",text:t.title})),t.time?h("span",{class:"ctime",text:fmtTime(t.time)}):null,
     t.priority?h("span",{class:"pri"+(t.priority===2?" p2":""),text:t.priority===2?"!!":"!"}):null);
@@ -255,7 +255,7 @@ function renderSchedule(main){
 
   const sec=h("section",{class:"sec"});
   sec.append(h("div",{class:"sec-h"},h("h2",{text:"Anytime"}),h("span",{class:"n",text:untimed.length?"Tap one to give it a time":""})));
-  if(allDayEvs.length)sec.append(h("div",{class:"anytime",style:"margin-bottom:8px"},allDayEvs.map(e=>h("a",{class:"chip evchip",href:e.link,target:"_blank",rel:"noopener noreferrer",text:"📅 "+e.title}))));
+  if(allDayEvs.length)sec.append(h("div",{class:"anytime",style:"margin-bottom:8px"},allDayEvs.map(e=>h("a",{class:"chip evchip",href:e.link,target:"_blank",rel:"noopener noreferrer",text:e.title}))));
   sec.append(untimed.length?h("div",{class:"anytime"},untimed.map(t=>{const l=listById(t.listId);return h("button",{class:"chip",onclick:()=>openTask(t)},h("span",{class:"ldot",style:"background:"+(l?l.color:"var(--muted)")}),t.title);})):h("div",{class:"small muted",text:"No unscheduled tasks for this day."}));
   main.append(sec);
 

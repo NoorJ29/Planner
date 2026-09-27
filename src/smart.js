@@ -56,12 +56,12 @@ function parseQuick(input){
 }
 function parseChips(p){
   const c=[];
-  if(p.date)c.push("📅 "+relLabel(p.date));
-  if(p.time)c.push("🕒 "+fmtTime(p.time)+(p.duration?" for "+durLabel(p.duration):""));
-  else if(p.duration)c.push("⏳ "+durLabel(p.duration));
+  if(p.date)c.push(relLabel(p.date));
+  if(p.time)c.push(fmtTime(p.time)+(p.duration?" for "+durLabel(p.duration):""));
+  else if(p.duration)c.push(durLabel(p.duration));
   if(p.listId){const l=listById(p.listId);if(l)c.push("# "+l.name);}
   if(p.priority)c.push(p.priority===2?"!! Urgent":"! Important");
   if(p.repeat)c.push("↻ "+REPEAT_LABEL[p.repeat]);
-  if(p.remind!=null)c.push("🔔 "+REMINDS.find(r=>r[0]===p.remind)[1]);
+  if(p.remind!=null)c.push("Reminder: "+REMINDS.find(r=>r[0]===p.remind)[1]);
   return c;
 }

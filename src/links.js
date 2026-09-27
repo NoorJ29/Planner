@@ -50,12 +50,12 @@ function renderLinks(main){
     h("button",{class:"chip","aria-pressed":String(!!UI.linkEdit),text:UI.linkEdit?"Done":"Edit",onclick:()=>{UI.linkEdit=!UI.linkEdit;render();}}),
     h("button",{class:"btn primary",style:"padding:10px 16px",text:"+ Add",onclick:()=>openLink(null)})));
   if(!links.length){
-    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("div",{style:"font-size:34px",text:"🔗"}),h("p",{style:"margin:6px 0 14px",text:"Save websites you use often and open them in one tap. Paste a link in the bar below, or tap Add."}),h("button",{class:"btn primary",text:"Add your first link",onclick:()=>openLink(null)}))));
+    main.append(h("div",{class:"sec"},h("div",{class:"empty"},h("p",{style:"margin:6px 0 14px",text:"Save websites you use often and open them in one tap. Paste a link in the bar below, or tap Add."}),h("button",{class:"btn primary",text:"Add your first link",onclick:()=>openLink(null)}))));
     return;
   }
   const counts={};links.forEach(l=>counts[l.catId]=(counts[l.catId]||0)+1);
   const orphans=links.filter(l=>!linkCatById(l.catId));
-  const chipList=[["","All ("+links.length+")"]].concat(cats.filter(c=>counts[c.id]).map(c=>[c.id,c.emoji+" "+c.name+" ("+counts[c.id]+")"]));
+  const chipList=[["","All ("+links.length+")"]].concat(cats.filter(c=>counts[c.id]).map(c=>[c.id,c.name+" ("+counts[c.id]+")"]));
   if(!chipList.some(([v])=>v===UI.linkCat))UI.linkCat="";
   main.append(h("div",{class:"lchips"},chipList.map(([v,l])=>h("button",{class:"chip","aria-pressed":String(UI.linkCat===v),text:l,onclick:()=>{UI.linkCat=v;render();window.scrollTo({top:0,behavior:"smooth"});}}))));
   main.append(h("div",{class:"lsort"},h("span",{class:"small muted",text:"Sort"}),seg([["az","A–Z"],["used","Most used"],["new","Newest"]],lsGet("planner.linkSort","az"),v=>{lsSet("planner.linkSort",v);render();}),
@@ -63,10 +63,10 @@ function renderLinks(main){
   const box=h("div",{class:"lsecs"});
   if(!UI.linkCat){
     const top=links.filter(l=>(l.visits||0)>=2).sort((a,b)=>(b.visits||0)-(a.visits||0)||(b.lastVisited||0)-(a.lastVisited||0)).slice(0,8);
-    if(top.length>=3)box.append(h("section",{class:"lsec quick","data-sec":"1"},h("div",{class:"lhead"},h("span",{class:"lemo",style:"--lc:var(--sun)",text:"⚡"}),h("b",{text:"Most used"})),h("div",{class:"lgrid"},top.map(linkTile))));
+    if(top.length>=3)box.append(h("section",{class:"lsec quick","data-sec":"1"},h("div",{class:"lhead"},h("b",{text:"Most used"})),h("div",{class:"lgrid"},top.map(linkTile))));
   }
   const groups=cats.filter(c=>!UI.linkCat||c.id===UI.linkCat).map(c=>[c,links.filter(l=>l.catId===c.id)]);
-  if(!UI.linkCat&&orphans.length)groups.push([{id:"_none",name:"No category",emoji:"📁",color:"#6B7C78"},orphans]);
+  if(!UI.linkCat&&orphans.length)groups.push([{id:"_none",name:"No category",emoji:"",color:"#6B7C78"},orphans]);
   groups.forEach(([c,items])=>{
     if(!items.length)return;
     items.sort(sorter);
@@ -74,7 +74,7 @@ function renderLinks(main){
     const toggle=()=>{const s=collapsed();s.has(c.id)?s.delete(c.id):s.add(c.id);lsSet("planner.linkCollapsed",JSON.stringify([...s]));render();};
     box.append(h("section",{class:"lsec"+(shut?" shut":""),"data-sec":"1"},
       h("div",{class:"lhead"},
-        h("button",{class:"lhbtn","aria-expanded":String(!shut),onclick:toggle},h("span",{class:"lemo",style:"--lc:"+(c.color||"#6B7C78"),text:c.emoji||"📁"}),h("b",{text:c.name}),h("span",{class:"n",text:String(items.length)}),h("span",{class:"chev",text:"›"})),
+        h("button",{class:"lhbtn","aria-expanded":String(!shut),onclick:toggle},h("b",{text:c.name}),h("span",{class:"n",text:String(items.length)}),h("span",{class:"chev",text:"›"})),
         h("button",{class:"chip openall",title:"Open all "+items.length+" in new tabs",onclick:()=>openAll(items,c.name)},"Open all ",h("span",{text:"↗"}))),
       h("div",{class:"lgrid"},items.map(linkTile))));
   });

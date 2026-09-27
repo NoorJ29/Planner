@@ -62,7 +62,7 @@ function renderMoney(main){
   if(!days.length)main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"No spending logged in "+label+"."})));
   days.forEach(k=>{const list=byDay[k].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));const tot=list.filter(x=>x.type!=="income").reduce((s,x)=>s+Number(x.amount||0),0);
     main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{style:"font-size:17px",text:relLabel(k)}),h("span",{class:"n",text:tot?money(tot):""})),h("div",{class:"box"},list.map(x=>{const c=catById(x.catId),inc=x.type==="income";
-      return h("button",{class:"txn",onclick:()=>openExpense(x)},h("span",{class:"em",text:inc?"💰":c.emoji}),h("span",{class:"mid"},h("b",{text:x.note||(inc?"Income":c.name)}),h("span",{class:"small muted",text:inc?"Income":c.name})),h("span",{class:"amt"+(inc?" in":""),text:(inc?"+":"")+money(x.amount)}));}))));});
+      return h("button",{class:"txn",onclick:()=>openExpense(x)},h("span",{class:"mid"},h("b",{text:x.note||(inc?"Income":c.name)}),h("span",{class:"small muted",text:inc?"Income":c.name})),h("span",{class:"amt"+(inc?" in":""),text:(inc?"+":"")+money(x.amount)}));}))));});
 }
 function openExpense(x){
   const isNew=!x||!D.expenses.has(x.id);
@@ -109,7 +109,7 @@ function renderGoals(main){
   const active=gs.filter(g=>!g.done),done=gs.filter(g=>g.done);
   main.append(h("div",{class:"btnrow"},h("button",{class:"btn primary wide",text:"+ New goal",onclick:()=>openGoal(null)})));
   if(!gs.length){main.append(h("div",{class:"sec"},h("div",{class:"empty",text:"Set a goal, then link tasks to it or track a number, like savings or kilometres run."})));return;}
-  const card=g=>{const p=goalProgress(g);return h("div",{class:"card"},h("button",{class:"hname",onclick:()=>openGoal(g)},h("b",{style:"font-size:17px",text:"🎯 "+g.title}),h("span",{text:(g.due?"By "+fromKey(g.due).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})+". ":"")+p.text})),
+  const card=g=>{const p=goalProgress(g);return h("div",{class:"card"},h("button",{class:"hname",onclick:()=>openGoal(g)},h("b",{style:"font-size:17px",text:g.title}),h("span",{text:(g.due?"By "+fromKey(g.due).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})+". ":"")+p.text})),
     h("div",{style:"margin-top:10px"},bar(p.pct)),g.kind==="number"&&!g.done?h("div",{class:"row",style:"margin-top:10px"},h("button",{class:"chip",text:"+1",onclick:()=>Store.put("goals",Object.assign(clone(g),{current:(Number(g.current)||0)+1}))}),h("button",{class:"chip",text:"Update",onclick:()=>openGoal(g)})):null);};
   main.append(h("div",{class:"cards grid sec"},active.map(card)));
   if(done.length)main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Achieved"})),h("div",{class:"cards grid"},done.map(card))));
@@ -248,8 +248,8 @@ function renderSettings(main){
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Updates"})),h("div",{class:"card upcard",style:"padding:2px 16px"},upd,inst)),
     h("p",{class:"small muted",text:"Nova checks for updates when you open it and every 30 minutes, and shows a bar at the top when one is ready."}));
   main.append(h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:"Home screen"})),h("div",{class:"card"},
-    h("p",{style:"margin:0 0 10px",text:"⚡ Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
-    h("p",{style:"margin:0 0 10px",text:"📤 Share to Nova: in any app, tap Share and pick Nova to save text or links as a note."}),
+    h("p",{style:"margin:0 0 10px",text:"Quick actions: long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."}),
+    h("p",{style:"margin:0 0 10px",text:"Share to Nova: in any app, tap Share and pick Nova to save text or links as a note."}),
     h("p",{class:"small muted",style:"margin:0",text:"Home-screen widgets need a native Android app, so installed web apps can't show them. Quick actions are the closest option."}))));
 }
 function applyTheme(){const t=lsGet("planner.theme","auto");if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);}
@@ -257,7 +257,7 @@ function applyTheme(){const t=lsGet("planner.theme","auto");if(t==="auto")docume
 /* ================= guide ================= */
 function renderGuide(main){
   const keyRow=(keys,what)=>h("div",{class:"setrow"},h("div",null,h("b",{text:what})),h("span",{class:"keys"},keys.map((grp,i)=>[i?h("span",{class:"plus",text:"or"}):null,grp.map((k,j)=>[j?h("span",{class:"plus",text:"+"}):null,h("kbd",{text:k})])])));
-  const tipRow=(icon,title,text)=>h("div",{class:"setrow",style:"align-items:flex-start"},h("div",null,h("b",{text:icon+"  "+title}),h("span",{text:text})));
+  const tipRow=(title,text)=>h("div",{class:"setrow",style:"align-items:flex-start"},h("div",null,h("b",{text:title}),h("span",{text:text})));
   const card=(title,sub,rows)=>h("section",{class:"sec"},h("div",{class:"sec-h"},h("h2",{text:title}),sub?h("span",{class:"n",text:sub}):null),h("div",{class:"card",style:"padding:2px 16px"},rows));
   main.append(h("p",{class:"muted",style:"margin:16px 0 0",text:"Everything Nova can do, and the fastest ways to do it."}));
   const MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent),CTRL=MAC?"⌘":"Ctrl";
@@ -274,13 +274,13 @@ function renderGuide(main){
     keyRow([["Esc"]],"Close the open window"),
     keyRow([["?"]],"Open this guide")]);
   const phone=card("On your phone","Touch and gestures",[
-    tipRow("⚡","Quick actions","Long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."),
-    tipRow("📤","Share to Nova","In any app, tap Share and choose Nova to save text or a link as a note."),
-    tipRow("👆","Swipe the calendar","In Month view, swipe left or right to change month."),
-    tipRow("↩️","Undo","Deleted or ticked something by mistake? Tap Undo on the message at the bottom.")]);
+    tipRow("Quick actions","Long-press the Nova icon on your home screen to add a task, log an expense, write a note or open today's journal."),
+    tipRow("Share to Nova","In any app, tap Share and choose Nova to save text or a link as a note."),
+    tipRow("Swipe the calendar","In Month view, swipe left or right to change month."),
+    tipRow("Undo","Deleted or ticked something by mistake? Tap Undo on the message at the bottom.")]);
   if(UI.desktop)main.append(kb,phone);else main.append(phone,kb);
   main.append(card("Formatting notes","Notes and journal",[
-    tipRow("🖋️","Toolbar","Select text, then use the toolbar above your note: headings, bold, colours, lists, checkboxes, indent, alignment, links, dividers and tables."),
+    tipRow("Toolbar","Select text, then use the toolbar above your note: headings, bold, colours, lists, checkboxes, indent, alignment, links, dividers and tables."),
     keyRow([["#"],["##"],["###"]],"Type at the start of a line, then a space, for a heading"),
     keyRow([["-"],["1."],["[]"]],"Type at the start of a line, then a space, for a bullet, numbered list or checkbox"),
     keyRow([[">"]],"Then a space, for a quote"),
@@ -293,26 +293,26 @@ function renderGuide(main){
     keyRow([["Tab"],["Shift","Tab"]],"Indent or outdent a list item"),
     keyRow([[CTRL,"Z"],[CTRL,"Y"]],"Undo, redo")]));
   main.append(card("Planning","",[
-    tipRow("✨","Smart quick add","Type naturally: “Dentist tomorrow 3pm #personal !!” sets the date, time, list and priority. Also try “every monday”, “in 3 days”, “for 1h”, “remind 15m” and “25 dec”. The chips above the bar show what was understood."),
-    tipRow("📅","Google Calendar","Connect it in Settings to see your events in Plan and Home, and send tasks to your calendar for real phone alarms."),
-    tipRow("🗓️","Schedule","Tap an empty time slot to add a task there. Drag the ⠿ handle to move a task to a new time."),
-    tipRow("↻","Repeating tasks","Tick a repeating task and the next one appears on its next date automatically."),
-    tipRow("☑","Checklists","Break a task into steps in its Checklist. The task shows how many steps are done."),
-    tipRow("🔔","Reminders","Turn on notifications in More, then Settings. For alarms you can't miss, open the task and tap Add to Google Calendar."),
-    tipRow("🎯","Goals","Link tasks to a goal from the task's Goal box, and the goal's progress bar fills as you finish them.")]));
+    tipRow("Smart quick add","Type naturally: “Dentist tomorrow 3pm #personal !!” sets the date, time, list and priority. Also try “every monday”, “in 3 days”, “for 1h”, “remind 15m” and “25 dec”. The chips above the bar show what was understood."),
+    tipRow("Google Calendar","Connect it in Settings to see your events in Plan and Home, and send tasks to your calendar for real phone alarms."),
+    tipRow("Schedule","Tap an empty time slot to add a task there. Drag the ⠿ handle to move a task to a new time."),
+    tipRow("Repeating tasks","Tick a repeating task and the next one appears on its next date automatically."),
+    tipRow("Checklists","Break a task into steps in its Checklist. The task shows how many steps are done."),
+    tipRow("Reminders","Turn on notifications in More, then Settings. For alarms you can't miss, open the task and tap Add to Google Calendar."),
+    tipRow("Goals","Link tasks to a goal from the task's Goal box, and the goal's progress bar fills as you finish them.")]));
   main.append(card("Everything else","",[
-    tipRow("🔥","Habits","Tap the big circle to tick today. Tap the small circles to fill in days you forgot."),
-    tipRow("📝","Journal","One entry per day with a mood. Export your notes or journal as PDF or Word from the Export button."),
-    tipRow("🛒","Shopping","Type “2 kg rice” and the amount is split out for you. Share a list straight to WhatsApp."),
-    tipRow("🔗","Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
-    tipRow("📤","Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
-    tipRow("💰","Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
-    tipRow("🏠","Home screen","Tap the sliders button at the top of Home to choose widgets, make them small or large, and reorder them."),
-    tipRow("⏱️","Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
-    tipRow("🔁","Subscriptions","Add regular payments in Money. They're logged automatically when due, with an optional reminder."),
-    tipRow("👨‍👩‍👧","Shared lists","In More, Shared lists, create a list and tap Invite. Family join with the code and see changes instantly."),
-    tipRow("🔒","App lock","Set a PIN (and fingerprint) in Settings. Forgot it? Sign in with your account password to reset."),
-    tipRow("💾","Backup","Download a backup file every few weeks from More, then Backup. The weekly review reminds you.")]));
+    tipRow("Habits","Tap the big circle to tick today. Tap the small circles to fill in days you forgot."),
+    tipRow("Journal","One entry per day with a mood. Export your notes or journal as PDF or Word from the Export button."),
+    tipRow("Shopping","Type “2 kg rice” and the amount is split out for you. Share a list straight to WhatsApp."),
+    tipRow("Links","Paste a web address into the bar at the bottom to save it. Tap a logo to open the site, or Open all to open a whole category. Tap Edit to rename or move links."),
+    tipRow("Links from other apps","Share a web page to Nova from your browser and it's saved to Links."),
+    tipRow("Money","Pick any world currency, or your own symbol, in More, then Settings. Set limits per category in Budget."),
+    tipRow("Home screen","Tap the sliders button at the top of Home to choose widgets, make them small or large, and reorder them."),
+    tipRow("Focus timer","Start from a task (▶ Focus) or press F. Time spent is saved on the task and in Insights."),
+    tipRow("Subscriptions","Add regular payments in Money. They're logged automatically when due, with an optional reminder."),
+    tipRow("Shared lists","In More, Shared lists, create a list and tap Invite. Family join with the code and see changes instantly."),
+    tipRow("App lock","Set a PIN (and fingerprint) in Settings. Forgot it? Sign in with your account password to reset."),
+    tipRow("Backup","Download a backup file every few weeks from More, then Backup. The weekly review reminds you.")]));
 }
 
 /* ================= profile ================= */
@@ -405,8 +405,8 @@ async function deleteAccount(pw){
 }
 
 /* ================= more tab ================= */
-const PAGES={insights:["📈","Insights","Charts of your progress"],review:["📊","Weekly review","See how the week went"],goals:["🎯","Goals","Track big things"],countdowns:["🎉","Countdowns","Days until what matters"],templates:["📋","Templates","Reusable checklists"],
-  shopping:["🛒","Shopping","Your shopping lists"],shared:["👨‍👩‍👧","Shared lists","Lists with family, live"],guide:["📖","Guide","Shortcuts, gestures and tips"],backup:["💾","Backup","Download or restore"],settings:["⚙️","Settings","Lock, calendar, reminders"],profile:["👤","Profile","Your account, name and password"]};
+const PAGES={insights:["","Insights","Charts of your progress"],review:["","Weekly review","See how the week went"],goals:["","Goals","Track big things"],countdowns:["","Countdowns","Days until what matters"],templates:["","Templates","Reusable checklists"],
+  shopping:["","Shopping","Your shopping lists"],shared:["","Shared lists","Lists with family, live"],guide:["","Guide","Shortcuts, gestures and tips"],backup:["","Backup","Download or restore"],settings:["","Settings","Lock, calendar, reminders"],profile:["","Profile","Your account, name and password"]};
 const MENU=[["Tools",["focus","insights","review","goals","countdowns","templates"]],["Lists",["shopping","shared"]],["App",["profile","guide","backup","settings"]]];
 function renderMore(main){
   if(UI.page&&PAGES[UI.page]){
@@ -417,11 +417,11 @@ function renderMore(main){
   }
   setHeader("More","Everything else in one place");
   const open=k=>{if(k==="focus"){openFocus();return;}UI.page=k;render();window.scrollTo(0,0);};
-  const item=(k,e,t,s,fn)=>h("button",{class:"mi",onclick:fn||(()=>open(k))},h("span",{class:"e",text:e}),h("b",{text:t}),h("span",{text:s}));
+  const item=(k,e,t,s,fn)=>h("button",{class:"mi",onclick:fn||(()=>open(k))},h("b",{text:t}),h("span",{text:s}));
   {const hidden=NAV_CHOICES.filter(c=>!navLayout(UI.desktop?"desk":"phone").includes(c[0]));
-    const SEC={plan:["🗓️","Your tasks and calendar"],habits:["🔥","Daily habits and streaks"],notes:["📝","Notes and journal"],money:["💰","Spending and budget"],links:["🔗","Your saved websites"]};
+    const SEC={plan:["","Your tasks and calendar"],habits:["","Daily habits and streaks"],notes:["","Notes and journal"],money:["","Spending and budget"],links:["","Your saved websites"]};
     if(hidden.length)main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:"Sections"}),h("div",{class:"menu"},hidden.map(([id,nm])=>item(id,SEC[id][0],nm,SEC[id][1],()=>goTab(id)))));}
-  MENU.forEach(([g,keys])=>{main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:g}),h("div",{class:"menu"},keys.map(k=>k==="focus"?item("focus","⏱️","Focus timer",focusState()?"Session running":"Pomodoro-style focus"):item(k,...PAGES[k]))));});
+  MENU.forEach(([g,keys])=>{main.append(h("div",{class:"sgroup",style:"margin:20px 2px 8px",text:g}),h("div",{class:"menu"},keys.map(k=>k==="focus"?item("focus","","Focus timer",focusState()?"Session running":"Pomodoro-style focus"):item(k,...PAGES[k]))));});
 }
 
 /* ================= search ================= */
@@ -435,13 +435,13 @@ function openSearch(){
     const has=(...f)=>f.some(x=>x&&String(x).toLowerCase().includes(s));
     const groups=[
       ["Tasks",vals("tasks").filter(t=>has(t.title,t.notes,...(t.subtasks||[]).map(x=>x.text))).sort((a,b)=>(a.done?1:0)-(b.done?1:0)),t=>[t.title+(t.done?" ✓":""),t.date?relLabel(t.date):"No date",go(()=>openTask(t))]],
-      ["Notes",vals("notes").filter(n=>n.type!=="journal"&&has(n.title,n.body)),n=>[n.title||"Untitled",(noteFolderOf(n)?"📁 "+folderLabel(noteFolderOf(n))+" · ":"")+snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="notes";render();openNote(n);})]],
+      ["Notes",vals("notes").filter(n=>n.type!=="journal"&&has(n.title,n.body)),n=>[n.title||"Untitled",(noteFolderOf(n)?folderLabel(noteFolderOf(n))+" · ":"")+snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="notes";render();openNote(n);})]],
       ["Journal",vals("notes").filter(n=>n.type==="journal"&&has(n.body)),n=>[longDate(n.date),snippet(n.body,70),go(()=>{UI.tab="notes";UI.notesSeg="journal";render();openJournal(n.date);})]],
-      ["Habits",vals("habits").filter(x=>has(x.name)),x=>[x.emoji+" "+x.name,"Habit",go(()=>{UI.tab="habits";render();openHabit(x);})]],
-      ["Goals",vals("goals").filter(g=>has(g.title,g.why)),g=>["🎯 "+g.title,goalProgress(g).text,go(()=>openGoal(g))]],
+      ["Habits",vals("habits").filter(x=>has(x.name)),x=>[x.name,"Habit",go(()=>{UI.tab="habits";render();openHabit(x);})]],
+      ["Goals",vals("goals").filter(g=>has(g.title,g.why)),g=>[g.title,goalProgress(g).text,go(()=>openGoal(g))]],
       ["Shopping",vals("shop").filter(i=>has(i.name)),i=>[i.name+(i.done?" ✓":""),(SET.shopLists.find(l=>l.id===i.listId)||{name:"List"}).name,go(()=>{UI.tab="more";UI.page="shopping";UI.shopList=i.listId;render();})]],
-      ["Countdowns",vals("countdowns").filter(c=>has(c.title)),c=>[(c.emoji||"🎉")+" "+c.title,cdLabel(daysUntil(cdNext(c))),go(()=>openCountdown(c))]],
-      ["Templates",vals("templates").filter(t=>has(t.name,...(t.items||[]))),t=>[(t.emoji||"📋")+" "+t.name,plural(t.items.length,"item"),go(()=>openTemplate(t))]],
+      ["Countdowns",vals("countdowns").filter(c=>has(c.title)),c=>[c.title,cdLabel(daysUntil(cdNext(c))),go(()=>openCountdown(c))]],
+      ["Templates",vals("templates").filter(t=>has(t.name,...(t.items||[]))),t=>[t.name,plural(t.items.length,"item"),go(()=>openTemplate(t))]],
       ["Links",vals("links").filter(l=>has(l.name,l.url,l.note)),l=>[l.name,domainOf(l.url),go(()=>{window.open(l.url,"_blank","noopener");visit(l);})]],
       ["Money",vals("expenses").filter(x=>has(x.note,catById(x.catId).name)),x=>[(x.note||catById(x.catId).name)+", "+money(x.amount),relLabel(x.date),go(()=>openExpense(x))]]];
     let any=false;
