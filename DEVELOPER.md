@@ -1,0 +1,43 @@
+# Nova: developer notes
+
+## What this is
+A single-page installable web app (PWA) hosted on GitHub Pages, with optional sync through Firebase (Auth + Firestore) and optional Google Calendar access. No build tools or frameworks: plain JavaScript and CSS.
+
+## Files
+- `src/` holds the **source**. Edit these, never `index.html` directly.
+  - `shell.html`: page skeleton (sidebar, dock, script/style placeholders)
+  - `style.css`: all styles (theme tokens at the top, laptop layout under `min-width:1000px`)
+  - `core.js`: helpers, state (`D`, `SET`, `UI`), sheets, sync `Store`, notifications
+  - `plan.js`: tasks, editor, week/month calendar, day/schedule/upcoming/lists
+  - `habits_notes.js`: habits, notes (with folders), journal, PDF/Word export
+  - `files.js`: pictures and files in notes, stored in Firestore as `users/{uid}/files/{id}` (details) plus `parts/{n}` (base64 pieces), because Cloud Storage needs the paid plan
+  - `editor.js`: rich text editor for notes and journal (Quill 2 from jsDelivr, loaded on demand; notes store a Delta in `doc` plus plain text in `body`)
+  - `more.js`: money, goals, shopping, weekly review, backup, settings, guide, More menu, search
+  - `links.js`, `smart.js` (quick-add parser), `focus.js`, `extras.js` (subscriptions, countdowns, templates), `insights.js`, `lock.js`, `shared.js` (family lists), `gcal.js` (Google Calendar), `home.js` (dashboard, bottom-bar choice)
+  - `main.js`: render loop, navigation, keyboard shortcuts, startup
+- `build.py` joins `src/` into `index.html`. The order of files matters (`main.js` last).
+- `sw.js`: service worker (offline cache). **Bump `VERSION` every release, before building**: it is also the app's version number.
+- `manifest.webmanifest`: install info, quick-action shortcuts, share target
+- `icon.svg`: the app icon's source (constellation N). After changing it, run `python3 tests/make_icons.py` to redraw `icon-192.png`, `icon-512.png` and `icon-maskable-512.png`. Internal names (storage keys `planner.*`, cache `planner-vN`, the repo) keep the old name on purpose.
+- `config.js`: Firebase config and optional Google client ID (per user, safe to publish)
+- `firestore.rules`: security rules; paste into Firebase after changing
+- `tests/`: Playwright tests (see `tests/README.md`)
+
+## Data model (Firestore)
+- `users/{uid}` holds settings (lists, categories, budget, currency, linkCats, dashboard).
+- `users/{uid}/{tasks|habits|notes|folders|goals|expenses|shop|links|focus|subs|countdowns|templates}/{id}` holds one document per item. Note folders are `{name,parentId,color}`; a note's `folderId` points at one ("" means top level).
+- `shared/{listId}` (+ `items/`) holds family lists; `invites/{code}` holds join codes.
+
+Without Firebase config, everything is stored in `localStorage` (`planner.v2`).
+
+## Workflow
+1. Edit files in `src/`.
+2. Bump `VERSION` in `sw.js` (for example `planner-v18` to `planner-v19`). Do this **before** building: `build.py` copies the number into the app, which shows it in Settings → Updates and compares it with the server's `sw.js` to spot new versions.
+3. `python3 build.py` (on Windows: `python3 -X utf8 build.py`).
+4. Test locally: `python3 -m http.server 8765`, open http://localhost:8765, and run the tests.
+5. Commit and push to the GitHub repo; GitHub Pages redeploys in about a minute, and open apps show "Nova version N is ready".
+
+## Conventions
+- UI text: plain, friendly English, no jargon. Buttons say exactly what they do.
+- Every destructive action offers Undo (`undoable()`) unless it affects other people.
+- Keep screens fast: `render()` batches with requestAnimationFrame; big lists are capped with "Show all".
